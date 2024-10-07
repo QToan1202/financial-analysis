@@ -328,7 +328,9 @@ sketch
 ### Nx ###
 .nx
 
-
-
 .nx/cache
 .nx/workspace-data
+
+### Editor ###
+
+.vscode
