@@ -1,6 +1,6 @@
 import { extendTheme } from '@chakra-ui/react'
 
-import { ButtonTheme, TextTheme } from './components'
+import { ButtonTheme, SearchTheme, TextTheme } from './components'
 
 const theme = extendTheme({
   styles: {
@@ -32,12 +32,19 @@ const theme = extendTheme({
       200: '#2c6288',
     },
     black: '#111827',
-    border: '#d1d5db',
+    border: {
+      default: '#e5e7eb',
+      button: '#d1d5db',
+    },
     white: '#fff',
+    gray: {
+      50: '#f9fafb',
+    },
   },
   components: {
     Button: ButtonTheme,
     Text: TextTheme,
+    Search: SearchTheme,
   },
 })
 

@@ -31,11 +31,11 @@ const ButtonTheme: ComponentStyleConfig = defineStyleConfig({
       },
     },
     outline: {
-      borderColor: 'border',
+      borderColor: 'border.button',
       bgColor: 'white',
       color: 'black',
       _hover: {
-        bgColor: '#f9fafb',
+        bgColor: 'gray.50',
       },
     },
   },
