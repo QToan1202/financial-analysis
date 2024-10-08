@@ -19,17 +19,22 @@ const theme = extendTheme({
     '2xl': '96em',
   },
   fontSizes: {
-    sm: 14,
-    base: 16,
-    md: 16,
-    lg: 18,
-    xl: 20,
-    '2xl': 30,
+    sm: '0.875rem',
+    base: '1rem',
+    md: '1rem',
+    lg: '1.125rem',
+    xl: '1.25rem',
+    '2xl': '1.185rem',
   },
   colors: {
     primary: {
       100: '#3c74d4',
       200: '#2c6288',
+    },
+    text: {
+      default: '#111827',
+      faded: '#374151',
+      light: '#1f2937',
     },
     black: '#111827',
     border: {
