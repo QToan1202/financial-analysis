@@ -31,5 +31,8 @@
     "framer-motion": "*",
     "react": "*",
     "react-dom": "*"
+  },
+  "dependencies": {
+    "@tanstack/react-table": "^8.20.5"
   }
 }
