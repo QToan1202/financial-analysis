@@ -6,7 +6,7 @@ const theme = extendTheme({
   styles: {
     global: {
       html: {
-        fontSize: '16px',
+        fontSize: { base: '14px', lg: '16px' },
       },
     },
   },
