@@ -325,12 +325,6 @@ sketch
 
 # End of https://www.toptal.com/developers/gitignore/api/react,node,python
 
-### Nx ###
-.nx
-
-.nx/cache
-.nx/workspace-data
-
 ### Editor ###
 
 .vscode
