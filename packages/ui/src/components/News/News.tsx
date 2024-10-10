@@ -19,7 +19,7 @@ const News = ({ thumbnail, publishDate, sourceName, title, description, link }: 
       templateColumns="1fr 2fr"
       gap="1rem"
       py="1.5rem"
-      bgColor="white"
+      bgColor="white.50"
       borderColor="border.button"
       borderBottomWidth="1px"
     >

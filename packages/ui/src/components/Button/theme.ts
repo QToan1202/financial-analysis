@@ -3,7 +3,7 @@ import { ComponentStyleConfig, defineStyleConfig } from '@chakra-ui/react'
 const ButtonTheme: ComponentStyleConfig = defineStyleConfig({
   baseStyle: {
     fontSize: '1rem',
-    color: 'white',
+    color: 'white.50',
   },
   sizes: {
     sm: {
@@ -32,8 +32,8 @@ const ButtonTheme: ComponentStyleConfig = defineStyleConfig({
     },
     outline: {
       borderColor: 'border.button',
-      bgColor: 'white',
-      color: 'black',
+      bgColor: 'white.50',
+      color: 'black.50',
       _hover: {
         bgColor: 'gray.50',
       },

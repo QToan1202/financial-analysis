@@ -25,6 +25,7 @@ const theme = extendTheme({
     lg: '1.125rem',
     xl: '1.25rem',
     '2xl': '1.185rem',
+    '3xl': '2rem',
   },
   colors: {
     primary: {
@@ -36,14 +37,21 @@ const theme = extendTheme({
       faded: '#374151',
       light: '#1f2937',
     },
-    black: '#111827',
+    black: {
+      50: '#111827',
+      100: '#111111',
+    },
     border: {
       default: '#e5e7eb',
       button: '#d1d5db',
     },
-    white: '#fff',
+    white: {
+      50: '#fff',
+      100: '#f8f8f8',
+    },
     gray: {
       50: '#f9fafb',
+      100: '#666666',
     },
   },
   components: {

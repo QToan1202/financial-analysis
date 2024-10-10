@@ -14,7 +14,7 @@ const SearchTheme: ComponentStyleConfig = defineStyleConfig({
     default: {
       _hover: {
         boxShadow: 'base',
-        bgColor: 'white',
+        bgColor: 'white.50',
       },
     },
   },
