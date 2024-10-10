@@ -13,11 +13,13 @@
   "devDependencies": {
     "@chakra-ui/storybook-addon": "^5.2.4",
     "@chromatic-com/storybook": "1.9.0",
+    "@newhighsco/storybook-addon-svgr": "^2.0.30",
     "@storybook/addon-essentials": "8.3.5",
     "@storybook/addon-interactions": "8.3.5",
     "@storybook/addon-links": "8.3.5",
     "@storybook/addon-onboarding": "8.3.5",
     "@storybook/blocks": "8.3.5",
+    "@storybook/builder-vite": "^8.3.5",
     "@storybook/react": "8.3.5",
     "@storybook/react-vite": "8.3.5",
     "@storybook/test": "8.3.5",

@@ -22,6 +22,7 @@
     "framer-motion": "*",
     "react": "*",
     "react-dom": "*",
+    "react-hook-form": ">=7",
     "typescript": "^5.5.3"
   },
   "peerDependencies": {
@@ -33,9 +34,11 @@
     "@types/react-dom": "*",
     "framer-motion": "*",
     "react": "*",
-    "react-dom": "*"
+    "react-dom": "*",
+    "react-hook-form": ">=7"
   },
   "dependencies": {
+    "@financial-web/asset": "workspace:*",
     "@tanstack/react-table": "^8.20.5",
     "dayjs": "^1.11.13"
   }

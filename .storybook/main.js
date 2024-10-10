@@ -8,10 +8,21 @@ const config = {
     '@chromatic-com/storybook',
     '@storybook/addon-interactions',
     '@chakra-ui/storybook-addon',
+    {
+      name: '@newhighsco/storybook-addon-svgr',
+      options: {
+        svgrOptions: {
+          memo: true,
+        },
+      },
+    },
   ],
   framework: {
     name: '@storybook/react-vite',
     options: {},
+  },
+  core: {
+    builder: '@storybook/builder-vite', // 👈 The builder enabled here.
   },
   features: {
     emotionAlias: false,
