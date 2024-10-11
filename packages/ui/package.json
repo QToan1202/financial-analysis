@@ -40,6 +40,8 @@
   "dependencies": {
     "@financial-web/asset": "workspace:*",
     "@tanstack/react-table": "^8.20.5",
-    "dayjs": "^1.11.13"
+    "chart.js": "^4.4.4",
+    "dayjs": "^1.11.13",
+    "react-chartjs-2": "^5.2.0"
   }
 }
