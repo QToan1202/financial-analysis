@@ -14,9 +14,12 @@
     "@chakra-ui/react": "^2.10.1",
     "@emotion/react": "^11.13.3",
     "@emotion/styled": "^11.13.0",
-    "@financial-web/ui": "workspace:*",
+    "@tanstack/react-table": "^8.20.5",
+    "chart.js": "^4.4.4",
+    "dayjs": "^1.11.13",
     "framer-motion": "^11.11.1",
     "react": "^18.3.1",
+    "react-chartjs-2": "^5.2.0",
     "react-dom": "^18.3.1",
     "react-hook-form": "^7.53.0"
   },
@@ -31,6 +34,7 @@
     "globals": "^15.9.0",
     "typescript": "^5.5.3",
     "typescript-eslint": "^8.0.1",
-    "vite": "^5.4.1"
+    "vite": "^5.4.1",
+    "vite-plugin-svgr": "^4.2.0"
   }
 }

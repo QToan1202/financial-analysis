@@ -46,7 +46,7 @@ const Search = ({ onChangeText, ...rest }: SearchProps) => {
   )
 
   return (
-    <InputGroup>
+    <InputGroup maxW={{ base: '95%', lg: '75%' }}>
       {LeftIcon}
       <Input
         variant="unstyled"

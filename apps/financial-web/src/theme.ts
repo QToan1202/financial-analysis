@@ -36,6 +36,7 @@ const theme = extendTheme({
       default: '#111827',
       faded: '#374151',
       light: '#1f2937',
+      link: '#1e73ba',
     },
     black: {
       50: '#111827',
