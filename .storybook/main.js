@@ -1,3 +1,7 @@
+const path = require('path')
+const viteConfigPath = path.join(__dirname, '../apps/financial-web/vite.config.ts')
+console.log(viteConfigPath)
+
 /** @type { import('@storybook/react-vite').StorybookConfig } */
 const config = {
   stories: ['../apps/*/src/**/*.stories.@(js|jsx|mjs|ts|tsx)'],
@@ -22,7 +26,12 @@ const config = {
     options: {},
   },
   core: {
-    builder: '@storybook/builder-vite', // 👈 The builder enabled here.
+    builder: {
+      name: '@storybook/builder-vite',
+      options: {
+        viteConfigPath,
+      },
+    }, // 👈 The builder enabled here.
   },
   features: {
     emotionAlias: false,

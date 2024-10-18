@@ -1,4 +1,4 @@
-import theme from '../packages/ui/src/theme'
+import theme from '../apps/financial-web/src/theme'
 
 /** @type { import('@storybook/react').Preview } */
 const preview = {
