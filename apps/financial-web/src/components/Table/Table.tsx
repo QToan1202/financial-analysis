@@ -14,19 +14,27 @@ import type { RowData, Table as TableDataType } from '@tanstack/react-table'
 
 export type TableProps<TData extends RowData> = TableContainerProps & {
   table: TableDataType<TData>
+  isShowFooter?: boolean
 }
 
-const CustomTable = <TData extends RowData>({ table, ...rest }: TableProps<TData>) => (
+const CustomTable = <TData extends RowData>({
+  table,
+  isShowFooter = false,
+  ...rest
+}: TableProps<TData>) => (
   <TableContainer {...rest}>
-    <Table variant="simple">
+    <Table borderWidth="1px" variant="unstyled">
       <Thead>
         {table.getHeaderGroups().map((headerGroup) => (
           <Tr key={headerGroup.id}>
             {headerGroup.headers.map((header) => (
-              <Th key={header.id}>
+              <Th borderWidth="1px" key={header.id}>
                 {header.isPlaceholder
                   ? null
-                  : flexRender(header.column.columnDef.header, header.getContext())}
+                  : flexRender(
+                      header.column.columnDef.header,
+                      header.getContext()
+                    )}
               </Th>
             ))}
           </Tr>
@@ -36,7 +44,13 @@ const CustomTable = <TData extends RowData>({ table, ...rest }: TableProps<TData
         {table.getRowModel().rows.map((row) => (
           <Tr key={row.id}>
             {row.getVisibleCells().map((cell) => (
-              <Td key={cell.id}>
+              <Td
+                borderWidth="1px"
+                key={cell.id}
+                textAlign={
+                  typeof cell.getValue() === 'number' ? 'end' : 'start'
+                }
+              >
                 {cell.getIsPlaceholder()
                   ? null
                   : flexRender(cell.column.columnDef.cell, cell.getContext())}
@@ -45,19 +59,24 @@ const CustomTable = <TData extends RowData>({ table, ...rest }: TableProps<TData
           </Tr>
         ))}
       </Tbody>
-      <Tfoot>
-        {table.getFooterGroups().map((footerGroup) => (
-          <Tr key={footerGroup.id}>
-            {footerGroup.headers.map((header) => (
-              <Th key={header.id}>
-                {header.isPlaceholder
-                  ? null
-                  : flexRender(header.column.columnDef.footer, header.getContext())}
-              </Th>
-            ))}
-          </Tr>
-        ))}
-      </Tfoot>
+      {isShowFooter && (
+        <Tfoot>
+          {table.getFooterGroups().map((footerGroup) => (
+            <Tr key={footerGroup.id}>
+              {footerGroup.headers.map((header) => (
+                <Th borderWidth="1px" key={header.id}>
+                  {header.isPlaceholder
+                    ? null
+                    : flexRender(
+                        header.column.columnDef.footer,
+                        header.getContext()
+                      )}
+                </Th>
+              ))}
+            </Tr>
+          ))}
+        </Tfoot>
+      )}
     </Table>
   </TableContainer>
 )
