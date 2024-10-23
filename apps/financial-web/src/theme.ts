@@ -54,6 +54,12 @@ const theme = extendTheme({
       50: '#f9fafb',
       100: '#666666',
     },
+    green: {
+      50: '#15803d',
+    },
+    red: {
+      50: '#dc2626',
+    },
   },
   components: {
     Button: ButtonTheme,
