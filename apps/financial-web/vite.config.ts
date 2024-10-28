@@ -19,6 +19,7 @@ export default defineConfig({
       '@services': `${path.resolve(__dirname, './src/services/')}`,
       '@factories': `${path.resolve(__dirname, './src/factories/')}`,
       '@types': `${path.resolve(__dirname, './src/types/')}`,
+      '@constants': `${path.resolve(__dirname, './src/constants/')}`,
     },
   },
 })

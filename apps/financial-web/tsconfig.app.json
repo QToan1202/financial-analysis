@@ -30,7 +30,8 @@
       "@components/*": ["src/components/*"],
       "@services/*": ["src/services/*"],
       "@factories/*": ["src/factories/*"],
-      "@types/*": ["src/types/*"]
+      "@types/*": ["src/types/*"],
+      "@constants/*": ["src/constants/*"]
     }
   },
   "include": ["src"]
