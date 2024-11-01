@@ -10,9 +10,8 @@ from langchain_core.output_parsers import StrOutputParser
 from typing import List
 from langchain_core.documents import Document
 
-from utils import (config_env)
-from vector_store import VectorStoreHelper
-from utils import TextProcessor
+from utils import config_env, TextProcessor
+from rag import VectorStoreHelper
 
 
 def load_docs() -> List[Document]:
