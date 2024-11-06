@@ -28,9 +28,8 @@ class VectorStoreHelper:
         self.collection = self.mongo_client[db_name][collection_name]
         self.search_index_name = search_index_name
 
-    def create_vector_search_index(self, search_index_name: str = ATLAS_VECTOR_SEARCH_INDEX_NAME, filter: Optional[List[str]] = None):
+    def create_vector_search_index(self, search_index_name: str = ATLAS_VECTOR_SEARCH_INDEX_NAME, filter: Optional[List[str]] = None, path: Optional[str] = None):
         existing_search_indexes = self.collection.list_search_indexes()
-
         for index in existing_search_indexes:
             if index["name"] == search_index_name:
                 print(
@@ -43,14 +42,15 @@ class VectorStoreHelper:
                 {
                     "type": "vector",
                     "numDimensions":  self.dimension,
-                    "path": "embedding",
+                    "path": path or "embedding",
                     "similarity": "cosine"
                 }
             ]
         }
 
         if (filter is not None):
-            search_def["fields"].extend(filter)
+            if isinstance(filter, List):
+                search_def["fields"].extend(filter)
 
         search_index_model = SearchIndexModel(
             definition=search_def, name=search_index_name, type="vectorSearch")
@@ -66,7 +66,8 @@ class VectorStoreHelper:
     def add_data(self, doc: List[Document]):
         parse_docs = [{
             "text": d.page_content,
-            "embedding": self.get_embedding(d.page_content)
+            "embedding": self.get_embedding(d.page_content),
+            "metadata": d.metadata
         } for d in doc]
         result = self.collection.insert_many(documents=parse_docs)
         print(result)
