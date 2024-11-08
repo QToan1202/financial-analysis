@@ -64,17 +64,20 @@ class VectorStoreHelper:
         return embedding.pop()
 
     def add_data(self, doc: List[Document]):
-        parse_docs = [{
-            "text": d.page_content,
-            "embedding": self.get_embedding(d.page_content),
-            "metadata": d.metadata
-        } for d in doc]
-        result = self.collection.insert_many(documents=parse_docs)
-        print(result)
+        parse_docs = []
+        for d in doc:
+            print(d.metadata)
+            doc_item = {
+                "text": d.page_content,
+                "embedding": self.get_embedding(d.page_content),
+            }
+            doc_item.update(d.metadata)
+            parse_docs.append(doc_item)
+
+        self.collection.insert_many(documents=parse_docs)
 
     def clear_data(self):
-        result = self.collection.delete_many({})
-        print(result)
+        self.collection.delete_many({})
 
     def get_vector_store(self):
         vector_store = MongoDBAtlasVectorSearch(collection=self.collection, embedding=self.embedding,
