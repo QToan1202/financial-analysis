@@ -28,8 +28,10 @@ const News = ({ thumbnail, publishDate, sourceName, title, description, link }: 
           <Image
             w="full"
             h="full"
+            maxW="295px"
+            maxH="165px"
             mt="0.25rem"
-            objectFit="cover"
+            objectFit="contain"
             borderRadius="0.25rem"
             fallbackSrc="https://via.placeholder.com/250"
             src={thumbnail}
