@@ -20,6 +20,7 @@ class VectorStoreHelper:
         _ = load_dotenv(find_dotenv())
         self.embedding = NVIDIAEmbeddings(
             model="nvidia/llama-3.2-nv-embedqa-1b-v1",
+            truncate="END",
             nvidia_api_key=os.getenv("NVIDIA_API_KEY"))
         self.dimension = len(self.embedding.embed_query(
             "Testing embedding dimension"))
