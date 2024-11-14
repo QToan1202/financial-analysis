@@ -79,3 +79,12 @@ export interface Stock {
   isAdr: boolean
   isFund: boolean
 }
+
+export interface StockPrice {
+  date: string
+  open: number
+  low: number
+  high: number
+  close: number
+  volume: number
+}
