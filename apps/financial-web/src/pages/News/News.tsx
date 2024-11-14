@@ -18,7 +18,7 @@ const NewsPage = () => {
   return isPending ? (
     <CircularProgress isIndeterminate color="primary.100" />
   ) : (
-    <Box>
+    <Box maxW="1200px">
       <Heading as="h1" textAlign="left" mb="1rem">
         All Stock News
       </Heading>
