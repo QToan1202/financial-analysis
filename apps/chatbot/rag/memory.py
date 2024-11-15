@@ -1,30 +1,43 @@
-
 from IPython.display import Image, display
+from langchain_core.messages import AIMessageChunk
+from langchain_core.messages import RemoveMessage, AIMessage, AIMessageChunk
 import uuid
-import json
+from rag.vector_store import VectorStoreHelper
+import sys
+import warnings
 import os
-from typing import List
+from typing import List, Literal, Optional
 from dotenv import load_dotenv, find_dotenv
 
 import tiktoken
 from langchain_community.tools.tavily_search import TavilySearchResults
 from langchain_core.documents import Document
-from langchain_core.messages import get_buffer_string
+from langchain_core.messages import get_buffer_string, HumanMessage
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import tool
-from langchain_core.vectorstores import InMemoryVectorStore
-from langchain_nvidia_ai_endpoints import ChatNVIDIA, NVIDIAEmbeddings
-from langgraph.checkpoint.memory import MemorySaver
+from langchain_nvidia_ai_endpoints import ChatNVIDIA
 from langgraph.graph import END, START, MessagesState, StateGraph
 from langgraph.prebuilt import ToolNode
 
-
 _ = load_dotenv(find_dotenv())
 
+warnings.filterwarnings('ignore')
 
-recall_vector_store = InMemoryVectorStore(
-    NVIDIAEmbeddings(model="nvidia/llama-3.2-nv-embedqa-1b-v1"))
+sys.path.append('../..')
+
+
+filter_vector_opt = [{
+    "type": "filter",
+    "path": "user_id"
+}]
+vector_store_helper = VectorStoreHelper(
+    collection_name="chat_history", search_index_name="chat")
+# vector_store_helper.clear_data()
+vector_store_helper.create_vector_search_index(
+    search_index_name="chat", filter=filter_vector_opt)
+vector_store = vector_store_helper.get_vector_store()
+recall_vector_store = vector_store
 
 
 def get_user_id(config: RunnableConfig) -> str:
@@ -37,27 +50,33 @@ def get_user_id(config: RunnableConfig) -> str:
 
 @tool
 def save_recall_memory(memory: str, config: RunnableConfig) -> str:
-    """Save memory to vectorstore for later semantic retrieval."""
+    """Save memory to vector store for later semantic retrieval."""
     user_id = get_user_id(config)
     document = Document(
         page_content=memory, id=str(uuid.uuid4()), metadata={"user_id": user_id}
     )
-    recall_vector_store.add_documents([document])
+    vector_store_helper.add_data([document])
     return memory
 
 
 @tool
-def search_recall_memories(query: str, config: RunnableConfig) -> List[str]:
-    """Search for relevant memories."""
+def search_recall_memories(query: str, config: RunnableConfig) -> str:
+    """Search for relevant memories"""
     user_id = get_user_id(config)
+    filter = {"user_id": {"$eq": user_id}}
+    search_kwargs = {
+        "k": 3,
+        "fetch_k": 5,
+        "pre_filter": filter
+    }
 
-    def _filter_function(doc: Document) -> bool:
-        return doc.metadata.get("user_id") == user_id
+    documents = recall_vector_store.as_retriever(search_type="mmr",
+                                                 search_kwargs=search_kwargs).invoke(query)
 
-    documents = recall_vector_store.similarity_search(
-        query, k=3, filter=_filter_function
-    )
-    return [document.page_content for document in documents]
+    for doc in documents:
+        print(f"* {doc.page_content} [{doc.metadata}]")
+
+    return "\n".join(document.page_content for document in documents)
 
 
 search = TavilySearchResults(max_results=1)
@@ -81,7 +100,7 @@ prompt = ChatPromptTemplate.from_messages(
             " important details that will help you better attend to the user's"
             " needs and understand their context.\n\n"
             "Memory Usage Guidelines:\n"
-            "1. Actively use memory tools (save_core_memory, save_recall_memory)"
+            "1. Actively use memory tools (save_recall_memory, search_recall_memories)"
             " to build a comprehensive understanding of the user.\n"
             "2. Make informed suppositions and extrapolations based on stored"
             " memories.\n"
@@ -114,7 +133,7 @@ prompt = ChatPromptTemplate.from_messages(
             " information you want to retain in the next conversation. If you"
             " do call tools, all text preceding the tool call is an internal"
             " message. Respond AFTER calling the tool, once you have"
-            " confirmation that the tool completed successfully.\n\n",
+            " confirmation that the tool completed successfully. \n\n",
         ),
         ("placeholder", "{messages}"),
     ]
@@ -123,11 +142,13 @@ prompt = ChatPromptTemplate.from_messages(
 
 model = chat_model = ChatNVIDIA(
     model="meta/llama-3.1-70b-instruct",
+    max_tokens=2048,
     api_key=os.environ["NVIDIA_API_KEY"],
     temperature=0.0,
 )
-model_with_tools = model.bind_tools(tools)
 
+model_with_tools = model.bind_tools(tools=tools)
+bound = prompt | model_with_tools
 tokenizer = tiktoken.encoding_for_model("gpt-4o")
 
 
@@ -140,10 +161,9 @@ def agent(state: State) -> State:
     Returns:
         schemas.State: The updated state with the agent's response.
     """
-    bound = prompt | model_with_tools
+    memories = state.get("recall_memories") or ""
     recall_str = (
-        "<recall_memory>\n" +
-        "\n".join(state["recall_memories"]) + "\n</recall_memory>"
+        "<recall_memory>\n" + memories + "\n</recall_memory>"
     )
     prediction = bound.invoke(
         {
@@ -166,67 +186,53 @@ def load_memories(state: State, config: RunnableConfig) -> State:
     Returns:
         State: The updated state with loaded memories.
     """
-    print(f"Counting messages: {len(state['messages'])}")
-    convo_str = get_buffer_string(state["messages"])
+    msg = [state["messages"][-1]]
+    convo_str = get_buffer_string(msg)
     convo_str = tokenizer.decode(tokenizer.encode(convo_str)[:2048])
     recall_memories = search_recall_memories.invoke(convo_str, config)
+
     return {
         "recall_memories": recall_memories,
     }
 
 
-def route_tools(state: State):
+def delete_messages(state: State) -> State:
+    messages = state["messages"]
+    if len(messages) > 12:
+        return {"messages": [RemoveMessage(msg.id) for msg in messages[:-12]]}
+
+    return {"messages": messages}
+
+
+def route_tools(state: State) -> Literal["tools", "delete_messages"]:
     """Determine whether to use tools or end the conversation based on the last message.
 
     Args:
         state (schemas.State): The current state of the conversation.
 
     Returns:
-        Literal["tools", "__end__"]: The next step in the graph.
+        Literal["tools", "delete_messages"]: The next step in the graph.
     """
+
     msg = state["messages"][-1]
     if msg.tool_calls:
         return "tools"
 
-    return END
-
+    return "delete_messages"
 
 # Create the graph and add nodes
+
+
 builder = StateGraph(State)
 builder.add_node(load_memories)
+builder.add_node(delete_messages)
 builder.add_node(agent)
 builder.add_node("tools", ToolNode(tools))
 
 # Add edges to the graph
 builder.add_edge(START, "load_memories")
 builder.add_edge("load_memories", "agent")
-builder.add_conditional_edges("agent", route_tools, ["tools", END])
+builder.add_conditional_edges(
+    "agent", route_tools, ["tools", "delete_messages"])
 builder.add_edge("tools", "agent")
-
-# Compile the graph
-memory = MemorySaver()
-graph = builder.compile(checkpointer=memory)
-
-
-display(Image(graph.get_graph().draw_mermaid_png()))
-
-
-def pretty_print_stream_chunk(chunk):
-    for node, updates in chunk.items():
-        print(f"Update from node: {node}")
-        if "messages" in updates:
-            updates["messages"][-1].pretty_print()
-        else:
-            print(updates)
-
-        print("\n")
-
-
-config = {"configurable": {"user_id": "1", "thread_id": "1"}}
-
-while True:
-    query = input("Enter messages:")
-    if query == 'stop':
-        break
-    for chunk in graph.stream({"messages": [("user", query)]}, config=config):
-        pretty_print_stream_chunk(chunk)
+builder.add_edge("delete_messages", END)
