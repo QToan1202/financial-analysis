@@ -12,11 +12,14 @@ import {
 import { useParams } from 'react-router-dom'
 import dayjs from 'dayjs'
 
-import { useGetStockDetail } from '@hooks'
+import { useGetHistoricalPrice, useGetStockDetail } from '@hooks'
+
+import StockPrice from './StockPrice'
 
 const DetailPage = () => {
   const { ticket } = useParams()
-  const { data: stockDetail, error, isPending } = useGetStockDetail(ticket || 'AAPL')
+  useGetHistoricalPrice(ticket || '')
+  const { data: stockDetail, error, isPending } = useGetStockDetail(ticket || '')
   const toast = useToast()
 
   if (error)
@@ -48,6 +51,9 @@ const DetailPage = () => {
           color={stockDetail.changes > 0 ? 'green.50' : 'red.50'}
         >{` ${stockDetail.changes > 0 ? '+' : ''}${stockDetail.changes} (${((stockDetail.changes / stockDetail.price) * 100).toFixed(2)}%)`}</Text>
       </Text>
+
+      <StockPrice isIncrease={stockDetail.changes > 0} />
+
       <Heading as="h2" textAlign="start" mb="0.5rem">
         About {stockDetail.symbol.toUpperCase()}
       </Heading>
