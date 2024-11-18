@@ -1,0 +1,5 @@
+export { default as useGetGainers } from './useGetGainers'
+export { default as useGetLosers } from './useGetLosers'
+export { default as useGetNews } from './useGetNews'
+export { default as useGetStockDetail } from './useGetStockDetail'
+export { default as useGetHistoricalPrice } from './useGetHistoricalPrice'
