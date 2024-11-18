@@ -1,37 +1,31 @@
-#!/usr/bin/env python
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from langserve import add_routes
-from rag import builder, AsyncMongoDBSaver, MongoDBSaver
 import os
+from fastapi import FastAPI
+from copilotkit import CopilotKitSDK, LangGraphAgent
+from copilotkit.integrations.fastapi import add_fastapi_endpoint
 
-app = FastAPI(
-    title="LangChain Server",
-    version="1.0",
-    description="A simple api server using Langchain's Runnable interfaces",
-)
+from rag import builder, MongoDBSaver
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-    expose_headers=["*"],
-)
+app = FastAPI(title="LangGraph Server",
+              version="1.0",
+              description="A simple api server using CopilotSDK",
+              )
+
 
 checkpoint = MongoDBSaver.from_conn_info(host=os.environ.get(
     "MONGODB_ATLAS_CLUSTER_URI"), db_name="langchain_test_db")
 graph = builder.compile(checkpointer=checkpoint)
-config = {"configurable": {
-    "user_id": "1", "thread_id": "chat_thread_1"}}
+config = {"configurable": {"user_id": "1", "thread_id": "chat_thread_1"}}
 
-add_routes(
-    app,
-    graph,
-    config_keys=("configuration"),
-    path="/chat",
-)
+sdk = CopilotKitSDK(agents=[
+    LangGraphAgent(
+        name="chat-with-memory-agent",
+        description="Agent that answers interact with human",
+        graph=graph,
+        config=config
+    )
+])
+
+add_fastapi_endpoint(app, sdk, "copilotkit_remote")
 
 if __name__ == "__main__":
     import uvicorn
