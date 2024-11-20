@@ -1,12 +1,15 @@
-from IPython.display import Image, display
-from langchain_core.messages import AIMessageChunk
-from langchain_core.messages import RemoveMessage, AIMessage, AIMessageChunk
+from psycopg import AsyncConnection
+from langchain_core.messages import RemoveMessage
+from pydantic import BaseModel, Field
 import uuid
-from rag.vector_store import VectorStoreHelper
-import sys
+from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
+from langgraph.checkpoint.postgres import PostgresSaver
 import warnings
+from langchain_nvidia_ai_endpoints import NVIDIAEmbeddings
+from langchain_postgres.vectorstores import PGVector
+from langchain_postgres import PGVector
 import os
-from typing import List, Literal, Optional
+from typing import List, Literal
 from dotenv import load_dotenv, find_dotenv
 
 import tiktoken
@@ -24,50 +27,71 @@ _ = load_dotenv(find_dotenv())
 
 warnings.filterwarnings('ignore')
 
-sys.path.append('../..')
+connection = os.environ.get("PGVT_CONNECTION")
+collection_name = "documents"
+
+embeddings = NVIDIAEmbeddings(
+    model="nvidia/llama-3.2-nv-embedqa-1b-v1",
+    truncate="END")
+
+recall_vector_store = vector_store = PGVector(
+    embeddings=embeddings,
+    collection_name=collection_name,
+    connection=connection,
+    use_jsonb=True,
+)
 
 
-filter_vector_opt = [{
-    "type": "filter",
-    "path": "user_id"
-}]
-vector_store_helper = VectorStoreHelper(
-    collection_name="chat_history", search_index_name="chat")
-# vector_store_helper.clear_data()
-vector_store_helper.create_vector_search_index(
-    search_index_name="chat", filter=filter_vector_opt)
-vector_store = vector_store_helper.get_vector_store()
-recall_vector_store = vector_store
+DB_URI = os.environ.get("PSQL_CONNECTION")
+connection_kwargs = {
+    "autocommit": True,
+    "prepare_threshold": 0,
+}
 
 
 def get_user_id(config: RunnableConfig) -> str:
-    user_id = config["configurable"].get("user_id")
+    user_id = config["configurable"].get("user_id", "")
     if user_id is None:
         raise ValueError("User ID needs to be provided to save a memory.")
 
     return user_id
 
 
-@tool
+class SaveRecallMemory(BaseModel):
+    memory: str = Field(..., description="A string containing information from the user, such as facts, experiences, or instructions, which will be analyzed and saved as a memory")
+
+
+@tool(args_schema=SaveRecallMemory)
 def save_recall_memory(memory: str, config: RunnableConfig) -> str:
-    """Save memory to vector store for later semantic retrieval."""
+    """This function is designed to capture and save user-related memories. 
+    It should be called when the user's query provides new information about their facts,
+    experiences, or specific instructions. Saving these memories enables the chat model 
+    to offer personalized and context-aware responses in future interactions"""
     user_id = get_user_id(config)
     document = Document(
         page_content=memory, id=str(uuid.uuid4()), metadata={"user_id": user_id}
     )
-    vector_store_helper.add_data([document])
+    recall_vector_store.add_documents([document])
     return memory
 
 
-@tool
+class SearchRecallMemory(BaseModel):
+    query: str = Field(..., description="A string representing the search input, which may include references to user-provided facts, experiences, or instructions")
+
+
+@tool(args_schema=SearchRecallMemory)
 def search_recall_memories(query: str, config: RunnableConfig) -> str:
-    """Search for relevant memories"""
+    """searches for related memories based on a given query.
+    It specifically identifies and retrieves user-related facts, experiences, 
+    or instructions that are relevant to the query. The purpose is to 
+    enhance contextual understanding and 
+    provide more personalized or context-aware responses"""
     user_id = get_user_id(config)
     filter = {"user_id": {"$eq": user_id}}
     search_kwargs = {
         "k": 3,
         "fetch_k": 5,
-        "pre_filter": filter
+        "filter": filter
     }
 
     documents = recall_vector_store.as_retriever(search_type="mmr",
@@ -142,8 +166,6 @@ prompt = ChatPromptTemplate.from_messages(
 
 model = chat_model = ChatNVIDIA(
     model="meta/llama-3.1-70b-instruct",
-    max_tokens=2048,
-    api_key=os.environ["NVIDIA_API_KEY"],
     temperature=0.0,
 )
 
@@ -152,7 +174,7 @@ bound = prompt | model_with_tools
 tokenizer = tiktoken.encoding_for_model("gpt-4o")
 
 
-def agent(state: State) -> State:
+async def agent(state: State) -> State:
     """Process the current state and generate a response using the LLM.
 
     Args:
@@ -165,7 +187,7 @@ def agent(state: State) -> State:
     recall_str = (
         "<recall_memory>\n" + memories + "\n</recall_memory>"
     )
-    prediction = bound.invoke(
+    prediction = await bound.ainvoke(
         {
             "messages": state["messages"],
             "recall_memories": recall_str,
