@@ -19,7 +19,7 @@ Topic: Build a financial market analysis website using linguistic model to suppo
 - NodeJS equal or above (v20.18.0)
 - Python equal or above (v3.11.0)
 - Setup virtual environment python ([optional](https://docs.python.org/3/library/venv.html))
-- Setup MongoDB local or Atlas
+- Setup [Docker CLI](https://docs.docker.com/reference/cli/docker/)
 
 ## Install and Run
 
@@ -37,19 +37,13 @@ git clone git@github.com:QToan1202/financial-analysis.git
 cd financial-analysis
 ```
 
-- Checkout to branch:
-  - feature/create-ui: for web app
-  - feature/create-chat-model: for the chatbot
+**_Step 3:_** Checkout to the _develop_ branch
 
 ```bash
-# For web
-cd apps/financial-web
-
-# For chat model
-cd apps/chatbot
+git checkout develop
 ```
 
-**_Step 3:_** Setup own environment variables. Rename the _.env.example_ file to _.env_
+**_Step 4:_** Setup own environment variables. Rename the _.env.example_ file to _.env_
 
 - For the FE: Require for stocks endpoint
   - [Alpha Vantage](https://www.alphavantage.co/)
@@ -58,24 +52,34 @@ cd apps/chatbot
 - For the Chatbot:
   - LangChain key for [LangSmith tracing](https://www.langchain.com/) (optional)
   - [NVIDIA NIM](https://developer.nvidia.com/nim) key to connect to the LLM model
-  - [MongoDB](https://www.mongodb.com/) for the tradition database as well as vector database. Make sure your database can create at lease 2 search indexes
   - [Tavily](https://tavily.com/) tool search for ReAct agent
+  - PostgreSQL and PGVector connection string
 
-**_Step 4:_** Install project dependencies
+**_Step 5:_** Install project dependencies
 
 ```bash
 # For JavaScript code
 pnpm i
 
 # For Python code
+# Active virtual env
+<path_to_venv>/Scripts/activate.bat # For cmd
+<path_to_venv>/Scripts/Activate.ps1 # For Powershell
+
 pip install -r requirements.txt
 ```
 
-**_Step 5:_** Run the applications
+**_Step 6:_** Run the applications
 
 ```bash
-# For web
+# Run docker compose
+docker-compose up -d
+
+# For FE
 pnpm --filter financial-web dev
+
+# For API
+pnpm --filter financial-api start:dev
 
 # For python
 # Active virtual env
@@ -83,5 +87,13 @@ pnpm --filter financial-web dev
 <path_to_venv>/Scripts/Activate.ps1 # For Powershell
 
 # Run app
-py main.py
+py apps/chatbot/main.py
 ```
+
+After shutdown all the services you may want to run `docker-compose down` to shutdown all composes
+
+Any modifies in the `docker-compose.yml` might need to remove the existed volumes
+
+Please contact [with me](mailto:ngquoctoan.02@gmail.com) if have any issues
+
+_Author: Toan Nguyen-Quoc_
