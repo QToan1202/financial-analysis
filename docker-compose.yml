@@ -1,0 +1,30 @@
+services:
+  postgres:
+    image: postgres:latest
+    container_name: psql-container
+    environment:
+      POSTGRES_USER: langgraph
+      POSTGRES_PASSWORD: root
+      POSTGRES_DB: financial
+    ports:
+      - '5442:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  pgvector:
+    image: pgvector/pgvector:0.8.0-pg17
+    container_name: pgvector-container
+    environment:
+      POSTGRES_USER: langchain
+      POSTGRES_PASSWORD: root
+      POSTGRES_DB: financial
+    depends_on:
+      - postgres
+    ports:
+      - '6024:5432'
+    volumes:
+      - pgvector_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
+  pgvector_data:
