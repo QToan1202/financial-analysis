@@ -1,25 +1,43 @@
-import { Center } from '@chakra-ui/react'
-import { CopilotChat } from '@copilotkit/react-ui'
+import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 
-// import { HomePage } from '@pages'
+import { Root } from '@layouts'
+import { ChatPage, DetailPage, HomePage, NewsPage, SignInPage, SignUpPage } from '@pages'
 
-import './App.css'
+const router = createBrowserRouter([
+  {
+    path: '/log-in',
+    element: <SignInPage />,
+  },
+  {
+    path: '/sign-un',
+    element: <SignUpPage />,
+  },
+  {
+    path: '/',
+    element: <Root />,
+    children: [
+      {
+        element: <HomePage />,
+        index: true,
+      },
+      {
+        path: 'news',
+        element: <NewsPage />,
+      },
+      {
+        path: 'detail/:ticket',
+        element: <DetailPage />,
+      },
+      {
+        path: 'chat',
+        element: <ChatPage />,
+      },
+    ],
+  },
+])
 
 function App() {
-  return (
-    <Center flexDirection="column">
-      {/* <HomePage /> */}
-      <CopilotChat
-        instructions={
-          'You are assisting the user as best as you can. Answer in the best way possible given the data you have.'
-        }
-        labels={{
-          title: 'Your Assistant',
-          initial: 'Hi! 👋 How can I assist you today?',
-        }}
-      />
-    </Center>
-  )
+  return <RouterProvider router={router} />
 }
 
 export default App
