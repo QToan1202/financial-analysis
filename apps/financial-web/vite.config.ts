@@ -20,6 +20,7 @@ export default defineConfig({
       '@factories': `${path.resolve(__dirname, './src/factories/')}`,
       '@types': `${path.resolve(__dirname, './src/types/')}`,
       '@constants': `${path.resolve(__dirname, './src/constants/')}`,
+      '@layouts': `${path.resolve(__dirname, './src/layouts/')}`,
     },
   },
 })

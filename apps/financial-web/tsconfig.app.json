@@ -31,7 +31,8 @@
       "@services/*": ["src/services/*"],
       "@factories/*": ["src/factories/*"],
       "@types/*": ["src/types/*"],
-      "@constants/*": ["src/constants/*"]
+      "@constants/*": ["src/constants/*"],
+      "@layouts/*": ["src/layouts/*"]
     }
   },
   "include": ["src"]
