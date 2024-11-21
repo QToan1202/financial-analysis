@@ -37,6 +37,7 @@ const theme = extendTheme({
       faded: '#374151',
       light: '#1f2937',
       link: '#1e73ba',
+      gray: '#9ca3af',
     },
     black: {
       50: '#111827',
@@ -60,6 +61,7 @@ const theme = extendTheme({
     red: {
       50: '#dc2626',
     },
+    footer: '#1f2937',
   },
   components: {
     Button: ButtonTheme,
