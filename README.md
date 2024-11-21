@@ -49,6 +49,8 @@ git checkout develop
   - [Alpha Vantage](https://www.alphavantage.co/)
   - [Financial Modeling Prep](https://site.financialmodelingprep.com/)
   - [Polygon](https://polygon.io/)
+- For the BE: Use to host CopilotKit Runtime
+  - [NVIDIA NIM](https://developer.nvidia.com/nim) key to connect to the LLM model
 - For the Chatbot:
   - LangChain key for [LangSmith tracing](https://www.langchain.com/) (optional)
   - [NVIDIA NIM](https://developer.nvidia.com/nim) key to connect to the LLM model
