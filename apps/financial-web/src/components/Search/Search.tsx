@@ -26,7 +26,7 @@ const Search = ({ onChangeText, ...rest }: SearchProps) => {
   const LeftIcon = useMemo(
     () => (
       <InputLeftElement pointerEvents="none">
-        <SearchIcon />
+        <SearchIcon boxSize="20px" />
       </InputLeftElement>
     ),
     []
