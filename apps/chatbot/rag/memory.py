@@ -1,3 +1,9 @@
+import sys
+import asyncio
+
+if sys.platform.startswith('win'):
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+
 from psycopg import AsyncConnection
 from langchain_core.messages import RemoveMessage
 from pydantic import BaseModel, Field
@@ -15,13 +21,14 @@ from dotenv import load_dotenv, find_dotenv
 import tiktoken
 from langchain_community.tools.tavily_search import TavilySearchResults
 from langchain_core.documents import Document
-from langchain_core.messages import get_buffer_string, HumanMessage
+from langchain_core.messages import get_buffer_string, HumanMessage, AIMessageChunk
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import tool
 from langchain_nvidia_ai_endpoints import ChatNVIDIA
 from langgraph.graph import END, START, MessagesState, StateGraph
 from langgraph.prebuilt import ToolNode
+
 
 _ = load_dotenv(find_dotenv())
 
@@ -68,10 +75,10 @@ def save_recall_memory(memory: str, config: RunnableConfig) -> str:
     experiences, or specific instructions. Saving these memories enables the chat model 
     to offer personalized and context-aware responses in future interactions"""
     user_id = get_user_id(config)
-    document = Document(
+    document = [Document(
         page_content=memory, id=str(uuid.uuid4()), metadata={"user_id": user_id}
-    )
-    recall_vector_store.add_documents([document])
+    )]
+    recall_vector_store.add_documents(document)
     return memory
 
 
@@ -174,7 +181,7 @@ bound = prompt | model_with_tools
 tokenizer = tiktoken.encoding_for_model("gpt-4o")
 
 
-async def agent(state: State) -> State:
+def agent(state: State) -> State:
     """Process the current state and generate a response using the LLM.
 
     Args:
@@ -187,7 +194,7 @@ async def agent(state: State) -> State:
     recall_str = (
         "<recall_memory>\n" + memories + "\n</recall_memory>"
     )
-    prediction = await bound.ainvoke(
+    prediction = bound.invoke(
         {
             "messages": state["messages"],
             "recall_memories": recall_str,
@@ -242,6 +249,16 @@ def route_tools(state: State) -> Literal["tools", "delete_messages"]:
 
     return "delete_messages"
 
+
+async def pretty_print_stream_chunk(msg):
+    if isinstance(msg, AIMessageChunk):
+        print(msg.content, end="", flush=True)
+        if msg.response_metadata.get("finish_reason", "") == "stop":
+            print("\n")
+    else:
+        print(msg.content)
+        print("\n")
+
 # Create the graph and add nodes
 
 
@@ -258,3 +275,24 @@ builder.add_conditional_edges(
     "agent", route_tools, ["tools", "delete_messages"])
 builder.add_edge("tools", "agent")
 builder.add_edge("delete_messages", END)
+
+
+async def main():
+    conn = await AsyncConnection.connect(DB_URI, **connection_kwargs)
+    checkpointer = AsyncPostgresSaver(conn)
+    checkpointer.setup()
+    graph = builder.compile(checkpointer=checkpointer)
+    config = {"configurable": {
+        "user_id": "1", "thread_id": "chat_thread_1"}}
+
+    while True:
+        query = input("Enter messages: ")
+        if query == 'stop':
+            break
+        async for msg, metadata in graph.astream({"messages": [HumanMessage(query)]}, config=config, stream_mode="messages"):
+            await pretty_print_stream_chunk(msg)
+
+    messages = await graph.aget_state(config)
+
+if __name__ == "__main__":
+    asyncio.run(main())
