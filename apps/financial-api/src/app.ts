@@ -1,10 +1,14 @@
 import express from 'express'
-import { CopilotRuntime, OpenAIAdapter, copilotRuntimeNodeHttpEndpoint } from '@copilotkit/runtime'
+import {
+  CopilotRuntime,
+  OpenAIAdapter,
+  copilotRuntimeNodeExpressEndpoint,
+} from '@copilotkit/runtime'
 import OpenAI from 'openai'
 import 'dotenv/config'
 
 const app = express()
-const port = 3000
+const port = process.env.PORT || 3000
 
 app.use(express.json())
 app.use(express.static('public'))
@@ -17,7 +21,7 @@ const openai = new OpenAI({
   apiKey: process.env.NVIDIA_API_KEY,
   baseURL: 'https://integrate.api.nvidia.com/v1',
 })
-const serviceAdapter = new OpenAIAdapter({ openai })
+const serviceAdapter = new OpenAIAdapter({ openai, model: 'meta/llama-3.1-405b-instruct' })
 
 app.use('/copilotkit', (req, res, next) => {
   const runtime = new CopilotRuntime({
@@ -27,7 +31,7 @@ app.use('/copilotkit', (req, res, next) => {
       },
     ],
   })
-  const handler = copilotRuntimeNodeHttpEndpoint({
+  const handler = copilotRuntimeNodeExpressEndpoint({
     endpoint: '/copilotkit',
     runtime,
     serviceAdapter,
