@@ -40,7 +40,12 @@ async def setup():
     )
     add_fastapi_endpoint(app, sdk, "copilotkit_remote")
 
-if __name__ == "__main__":
-    import uvicorn
 
-    uvicorn.run(app, host="localhost", port=8000)
+def main():
+    """Run the uvicorn server."""
+    import uvicorn
+    uvicorn.run("main:app", host="localhost", port=8000, reload=True)
+
+
+if __name__ == "__main__":
+    main()
