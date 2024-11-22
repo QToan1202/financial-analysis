@@ -7,8 +7,6 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import App from './App.tsx'
 import { overrideTheme } from './index.ts'
 
-import '@copilotkit/react-ui/styles.css'
-
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -21,7 +19,11 @@ createRoot(document.getElementById('root')!).render(
   // <StrictMode>
   <QueryClientProvider client={queryClient}>
     <ChakraProvider theme={overrideTheme}>
-      <CopilotKit runtimeUrl="http://localhost:3000/copilotkit" agent="chat-with-memory-agent">
+      <CopilotKit
+        runtimeUrl="http://localhost:3000/copilotkit"
+        agent="chat-with-memory-agent"
+        showDevConsole={false}
+      >
         <App />
       </CopilotKit>
     </ChakraProvider>
