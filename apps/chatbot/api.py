@@ -18,19 +18,21 @@ from copilotkit.action import ActionDict
 logging.basicConfig(level=logging.ERROR)
 logger = logging.getLogger(__name__)
 
-# def add_fastapi_endpoint(fastapi_app: FastAPI, sdk: CopilotKitSDK, prefix: str):
-#     """Add FastAPI endpoint"""
-#     async def make_handler(request: Request):
-#         return await handler(request, sdk)
 
-#     # Ensure the prefix starts with a slash and remove trailing slashes
-#     normalized_prefix = '/' + prefix.strip('/')
+def add_fastapi_endpoint(fastapi_app: FastAPI, prefix: str):
+    """Add FastAPI endpoint"""
+    async def make_handler(request: Request):
+        return await handler(request, fastapi_app.state.sdk)
 
-#     fastapi_app.add_api_route(
-#         f"{normalized_prefix}/{{path:path}}",
-#         make_handler,
-#         methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-#     )
+    # Ensure the prefix starts with a slash and remove trailing slashes
+    normalized_prefix = '/' + prefix.strip('/')
+
+    fastapi_app.add_api_route(
+        f"{normalized_prefix}/{{path:path}}",
+        make_handler,
+        methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    )
+
 
 def body_get_or_raise(body: Any, key: str):
     """Get value from body or raise an error"""
@@ -46,12 +48,13 @@ async def handler(request: Request, sdk: CopilotKitSDK):
     try:
         body = await request.json()
     except Exception as exc:
-        raise HTTPException(status_code=400, detail="Request body is required") from exc
+        raise HTTPException(
+            status_code=400, detail="Request body is required") from exc
 
     path = request.path_params.get('path')
     method = request.method
     context = cast(
-        CopilotKitSDKContext, 
+        CopilotKitSDKContext,
         {
             "properties": body.get("properties", {}),
             "frontend_url": body.get("frontendUrl", None)
@@ -92,7 +95,6 @@ async def handler(request: Request, sdk: CopilotKitSDK):
             actions=actions,
         )
 
-
     raise HTTPException(status_code=404, detail="Not found")
 
 
@@ -101,13 +103,14 @@ async def handle_info(*, sdk: CopilotKitSDK, context: CopilotKitSDKContext):
     result = sdk.info(context=context)
     return JSONResponse(content=result)
 
+
 async def handle_execute_action(
-        *,
-        sdk: CopilotKitSDK,
-        context: CopilotKitSDKContext,
-        name: str,
-        arguments: dict,
-    ):
+    *,
+    sdk: CopilotKitSDK,
+    context: CopilotKitSDKContext,
+    name: str,
+    arguments: dict,
+):
     """Handle execute action request with FastAPI"""
     try:
         result = await sdk.execute_action(
@@ -122,21 +125,22 @@ async def handle_execute_action(
     except ActionExecutionException as exc:
         logger.error("Action execution error: %s", exc)
         return JSONResponse(content={"error": str(exc)}, status_code=500)
-    except Exception as exc: # pylint: disable=broad-except
+    except Exception as exc:  # pylint: disable=broad-except
         logger.error("Action execution error: %s", exc)
         return JSONResponse(content={"error": str(exc)}, status_code=500)
 
-async def handle_execute_agent( # pylint: disable=too-many-arguments
-        *,
-        sdk: CopilotKitSDK,
-        context: CopilotKitSDKContext,
-        thread_id: str,
-        node_name: str,
-        name: str,
-        state: dict,
-        messages: List[Message],
-        actions: List[ActionDict],
-    ):
+
+async def handle_execute_agent(  # pylint: disable=too-many-arguments
+    *,
+    sdk: CopilotKitSDK,
+    context: CopilotKitSDKContext,
+    thread_id: str,
+    node_name: str,
+    name: str,
+    state: dict,
+    messages: List[Message],
+    actions: List[ActionDict],
+):
     """Handle continue agent execution request with FastAPI"""
     try:
         events = await sdk.execute_agent(
@@ -155,6 +159,6 @@ async def handle_execute_agent( # pylint: disable=too-many-arguments
     except AgentExecutionException as exc:
         logger.error("Agent execution error: %s", exc, exc_info=True)
         return JSONResponse(content={"error": str(exc)}, status_code=500)
-    except Exception as exc: # pylint: disable=broad-except
+    except Exception as exc:  # pylint: disable=broad-except
         logger.error("Agent execution error: %s", exc, exc_info=True)
         return JSONResponse(content={"error": str(exc)}, status_code=500)
