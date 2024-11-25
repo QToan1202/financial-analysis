@@ -263,14 +263,14 @@ async def pretty_print_stream_chunk(msg):
 
 
 builder = StateGraph(State)
-builder.add_node(load_memories)
+# builder.add_node(load_memories)
 builder.add_node(delete_messages)
 builder.add_node(agent)
 builder.add_node("tools", ToolNode(tools))
 
 # Add edges to the graph
-builder.add_edge(START, "load_memories")
-builder.add_edge("load_memories", "agent")
+# builder.add_edge(START, "load_memories")
+builder.add_edge(START, "agent")
 builder.add_conditional_edges(
     "agent", route_tools, ["tools", "delete_messages"])
 builder.add_edge("tools", "agent")
