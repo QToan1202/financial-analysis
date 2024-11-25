@@ -7,6 +7,7 @@ from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, START, StateGraph, MessagesState
 from langgraph.prebuilt import ToolNode
 from langchain_nvidia_ai_endpoints import ChatNVIDIA
+from copilotkit.langchain import copilotkit_customize_config
 
 
 # Define the tools for the agent to use
@@ -44,9 +45,14 @@ def should_continue(state: MessagesState) -> Literal["tools", END]:
 
 
 # Define the function that calls the model
-def call_model(state: MessagesState):
+def call_model(state: MessagesState, config):
+    # 1) Configure CopilotKit to emit tool calls
+    modifiedConfig = copilotkit_customize_config(
+        config,
+        emit_intermediate_state=False,
+    )
     messages = state['messages']
-    response = model.invoke(messages)
+    response = model.invoke(messages, modifiedConfig)
     # We return a list, because this will get added to the existing list
     return {"messages": [response]}
 
