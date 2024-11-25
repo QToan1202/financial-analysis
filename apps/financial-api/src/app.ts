@@ -1,4 +1,7 @@
+import 'dotenv/config'
 import express from 'express'
+import cors from 'cors'
+
 import { connectDB } from './server'
 import { runtime } from './controller/copilotkit'
 
@@ -6,6 +9,8 @@ const app = express()
 const port = process.env.PORT || 3000
 
 connectDB()
+
+app.use(cors())
 app.use(express.json())
 app.use(express.static('public'))
 
@@ -14,6 +19,8 @@ app.get('/', (req, res) => {
 })
 
 app.use('/copilotkit', runtime)
+
+app.use(require('./router/auth'))
 
 app.listen(port, () => {
   return console.log(`http://localhost:${port}`)
