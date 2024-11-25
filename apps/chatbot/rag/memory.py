@@ -249,6 +249,16 @@ def route_tools(state: State) -> Literal["tools", "delete_messages"]:
 
     return "delete_messages"
 
+
+async def pretty_print_stream_chunk(msg):
+    if isinstance(msg, AIMessageChunk):
+        print(msg.content, end="", flush=True)
+        if msg.response_metadata.get("finish_reason", "") == "stop":
+            print("\n")
+    else:
+        print(msg.content)
+        print("\n")
+
 # Create the graph and add nodes
 
 
@@ -265,3 +275,24 @@ builder.add_conditional_edges(
     "agent", route_tools, ["tools", "delete_messages"])
 builder.add_edge("tools", "agent")
 builder.add_edge("delete_messages", END)
+
+
+async def main():
+    conn = await AsyncConnection.connect(DB_URI, **connection_kwargs)
+    checkpointer = AsyncPostgresSaver(conn)
+    checkpointer.setup()
+    graph = builder.compile(checkpointer=checkpointer)
+    config = {"configurable": {
+        "user_id": "1", "thread_id": "chat_thread_1"}}
+
+    while True:
+        query = input("Enter messages: ")
+        if query == 'stop':
+            break
+        async for msg, metadata in graph.astream({"messages": [HumanMessage(query)]}, config=config, stream_mode="messages"):
+            await pretty_print_stream_chunk(msg)
+
+    messages = await graph.aget_state(config)
+
+if __name__ == "__main__":
+    asyncio.run(main())
