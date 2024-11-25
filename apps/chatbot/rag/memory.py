@@ -172,8 +172,8 @@ prompt = ChatPromptTemplate.from_messages(
 
 
 model = chat_model = ChatNVIDIA(
-    model="meta/llama-3.1-70b-instruct",
-    temperature=0.0,
+    model="meta/llama-3.1-405b-instruct",
+    temperature=0.5,
 )
 
 model_with_tools = model.bind_tools(tools=tools)
