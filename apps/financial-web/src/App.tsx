@@ -9,7 +9,7 @@ const router = createBrowserRouter([
     element: <SignInPage />,
   },
   {
-    path: '/sign-un',
+    path: '/sign-up',
     element: <SignUpPage />,
   },
   {
