@@ -75,10 +75,10 @@ def save_recall_memory(memory: str, config: RunnableConfig) -> str:
     experiences, or specific instructions. Saving these memories enables the chat model 
     to offer personalized and context-aware responses in future interactions"""
     user_id = get_user_id(config)
-    document = [Document(
+    document = Document(
         page_content=memory, id=str(uuid.uuid4()), metadata={"user_id": user_id}
-    )]
-    recall_vector_store.add_documents(document)
+    )
+    recall_vector_store.add_documents([document])
     return memory
 
 
@@ -172,8 +172,8 @@ prompt = ChatPromptTemplate.from_messages(
 
 
 model = chat_model = ChatNVIDIA(
-    model="meta/llama-3.1-70b-instruct",
-    temperature=0.0,
+    model="meta/llama-3.1-405b-instruct",
+    temperature=0.5,
 )
 
 model_with_tools = model.bind_tools(tools=tools)
@@ -181,7 +181,7 @@ bound = prompt | model_with_tools
 tokenizer = tiktoken.encoding_for_model("gpt-4o")
 
 
-def agent(state: State) -> State:
+async def agent(state: State) -> State:
     """Process the current state and generate a response using the LLM.
 
     Args:
@@ -194,7 +194,7 @@ def agent(state: State) -> State:
     recall_str = (
         "<recall_memory>\n" + memories + "\n</recall_memory>"
     )
-    prediction = bound.invoke(
+    prediction = await bound.ainvoke(
         {
             "messages": state["messages"],
             "recall_memories": recall_str,
@@ -263,14 +263,14 @@ async def pretty_print_stream_chunk(msg):
 
 
 builder = StateGraph(State)
-builder.add_node(load_memories)
+# builder.add_node(load_memories)
 builder.add_node(delete_messages)
 builder.add_node(agent)
 builder.add_node("tools", ToolNode(tools))
 
 # Add edges to the graph
-builder.add_edge(START, "load_memories")
-builder.add_edge("load_memories", "agent")
+# builder.add_edge(START, "load_memories")
+builder.add_edge(START, "agent")
 builder.add_conditional_edges(
     "agent", route_tools, ["tools", "delete_messages"])
 builder.add_edge("tools", "agent")
