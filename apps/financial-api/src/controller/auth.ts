@@ -61,7 +61,7 @@ export const login = async (
   }
 }
 
-const generateToken = (payload: object | string | Buffer): Token => {
+export const generateToken = (payload: object | Buffer): Token => {
   const accessToken = jwt.sign(payload, process.env.JWT_SECRET as Secret, {
     expiresIn: process.env.JWT_EXPIRE,
   })
@@ -98,8 +98,11 @@ export const refreshToken = (
   try {
     // Verify refresh token
     const decoded = jwt.verify(token, process.env.SECRET as Secret)
-    const { accessToken } =
-      typeof decoded === 'string' ? generateToken(decoded) : generateToken({ id: decoded.id })
+    if (typeof decoded === 'string') {
+      response.status(403).json({ message: 'Invalid token.' })
+      return
+    }
+    const { accessToken } = generateToken({ id: decoded.id })
 
     response.json({ token: accessToken })
   } catch (error) {
