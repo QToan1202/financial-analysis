@@ -1,6 +1,7 @@
 import {
   AbsoluteCenter,
   Box,
+  Center,
   chakra,
   Checkbox,
   Divider,
@@ -10,11 +11,11 @@ import {
   FormLabel,
   Heading,
   Input,
-  Link,
 } from '@chakra-ui/react'
 import { type SubmitHandler, useForm } from 'react-hook-form'
 
-import { Button } from '../../components'
+import { Button, Link } from '@components'
+import { Apple, Facebook, Google } from '@assets'
 
 type SignInForm = {
   account: string
@@ -38,27 +39,27 @@ const SignInPage = () => {
   }
 
   return (
-    <Flex bgColor="white.100" flex={1}>
-      <Flex direction="column" gap="3rem" w="580px">
+    <Center>
+      <Flex direction="column" flex={1} gap="3rem" maxW="580px" mt="2rem">
         <Heading as="h1" textAlign="center" fontSize="3xl" fontWeight="medium">
           Log in to your design account
         </Heading>
 
         <Flex direction="column" gap="1rem">
-          <Button w="full" variant="outline" borderRadius="full">
+          <Button leftIcon={<Facebook />} w="full" variant="outline" borderRadius="full">
             Continue with Facebook
           </Button>
-          <Button w="full" variant="outline" borderRadius="full">
+          <Button leftIcon={<Google />} w="full" variant="outline" borderRadius="full">
             Continue with Google
           </Button>
-          <Button w="full" variant="outline" borderRadius="full">
+          <Button leftIcon={<Apple />} w="full" variant="outline" borderRadius="full">
             Continue with Apple
           </Button>
         </Flex>
 
         <Box position="relative">
           <Divider borderColor="gray.100" opacity={0.25} />
-          <AbsoluteCenter bg="white.100" px="4" color="gray.100">
+          <AbsoluteCenter bg="white" px="4" color="gray.100">
             OR
           </AbsoluteCenter>
         </Box>
@@ -83,17 +84,18 @@ const SignInPage = () => {
             </FormLabel>
             <Input
               id="password"
+              type="password"
               {...register('password', {
                 required: 'This is required',
                 minLength: { value: 4, message: 'Minimum length should be 4' },
               })}
             />
             {errors.password && <FormErrorMessage>{errors.password.message}</FormErrorMessage>}
-            <Link href="#" alignSelf="flex-end" textDecoration="underline">
+            <Link to="#" alignSelf="flex-end" textDecoration="underline">
               Forget your password
             </Link>
           </FormControl>
-          <Checkbox colorScheme="black">Keep me signed in until I sign out</Checkbox>
+          <Checkbox colorScheme="blackAlpha">Keep me signed in until I sign out</Checkbox>
           <Button
             isLoading={isSubmitting}
             borderRadius="full"
@@ -116,11 +118,11 @@ const SignInPage = () => {
             borderRadius="full"
             _hover={{ bgColor: 'black.100', color: 'white.50' }}
           >
-            Sign up
+            <Link to="/sign-up">Sign up</Link>
           </Button>
         </Flex>
       </Flex>
-    </Flex>
+    </Center>
   )
 }
 
