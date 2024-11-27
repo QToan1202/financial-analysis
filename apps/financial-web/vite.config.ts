@@ -21,6 +21,7 @@ export default defineConfig({
       '@types': `${path.resolve(__dirname, './src/types/')}`,
       '@constants': `${path.resolve(__dirname, './src/constants/')}`,
       '@layouts': `${path.resolve(__dirname, './src/layouts/')}`,
+      '@contexts': `${path.resolve(__dirname, './src/contexts/')}`,
     },
   },
 })
