@@ -13,20 +13,14 @@ import {
   Heading,
   Input,
   Text,
+  useToast,
 } from '@chakra-ui/react'
 import { type SubmitHandler, useForm } from 'react-hook-form'
 
 import { Button, Link } from '@components'
 import { Apple, Facebook, Google } from '@assets'
-
-type SignUpForm = {
-  firstName: string
-  lastName: string
-  email: string
-  phone: string
-  password: string
-  confirmPassword: string
-}
+import type { SignUpForm } from '@types'
+import { useGoogleLogin, useRegister } from '@hooks'
 
 const SignInPage = () => {
   const {
@@ -34,15 +28,48 @@ const SignInPage = () => {
     register,
     formState: { errors, isSubmitting },
   } = useForm<SignUpForm>()
-
+  const toast = useToast({
+    duration: 3 * 1000,
+    isClosable: true,
+  })
+  const { mutate: registerNormalAccount } = useRegister('/register')
   const onSubmit: SubmitHandler<SignUpForm> = (values) => {
-    return new Promise<void>((resolve) => {
-      setTimeout(() => {
-        alert(JSON.stringify(values, null, 2))
-        resolve()
-      }, 3000)
+    registerNormalAccount(values, {
+      onSuccess: () => {
+        toast({
+          title: 'Register success.',
+          description: 'Welcome! You have successfully registered in',
+          status: 'success',
+        })
+      },
+      onError: (error) => {
+        toast({
+          title: 'Register Failed.',
+          description:
+            error.message || 'Something went wrong. Please check your credentials and try again.',
+          status: 'error',
+        })
+      },
     })
   }
+  const handleRegisterWithGoogle = useGoogleLogin('/google/register', {
+    onSuccess: () => {
+      toast({
+        title: 'Register success.',
+        description: 'Welcome! You have successfully registered in',
+        status: 'success',
+      })
+    },
+    onError: (error) => {
+      toast({
+        title: 'Register Failed.',
+        description:
+          error.error_description ||
+          'Something went wrong. Please check your credentials and try again.',
+        status: 'error',
+      })
+    },
+  })
 
   return (
     <Center>
@@ -55,7 +82,13 @@ const SignInPage = () => {
           <Button leftIcon={<Facebook />} w="full" variant="outline" borderRadius="full">
             Continue with Facebook
           </Button>
-          <Button leftIcon={<Google />} w="full" variant="outline" borderRadius="full">
+          <Button
+            leftIcon={<Google />}
+            onClick={handleRegisterWithGoogle}
+            w="full"
+            variant="outline"
+            borderRadius="full"
+          >
             Continue with Google
           </Button>
           <Button leftIcon={<Apple />} w="full" variant="outline" borderRadius="full">
@@ -167,7 +200,7 @@ const SignInPage = () => {
             </Button>
             <Text textAlign="center">
               Already have an account?{' '}
-              <Link to="log-in" textDecoration="underline">
+              <Link to="/log-in" textDecoration="underline">
                 Log in
               </Link>
             </Text>

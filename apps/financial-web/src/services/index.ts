@@ -1,5 +1,12 @@
 import axios, { AxiosInstance } from 'axios'
 
+export const requestForBE: AxiosInstance = axios.create({
+  baseURL: 'http://localhost:3000/',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+})
+
 export const requestAA: AxiosInstance = axios.create({
   baseURL: 'https://www.alphavantage.co',
   params: {
