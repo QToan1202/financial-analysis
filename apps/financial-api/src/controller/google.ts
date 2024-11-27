@@ -1,10 +1,11 @@
 import { OAuth2Client } from 'google-auth-library'
-import { IRequest, Token } from '../types'
+import { HydratedDocument } from 'mongoose'
 import { NextFunction, Response } from 'express'
 
 import { generateToken } from './auth'
 import User from '../models/user'
 import { IUser } from '../models/user/type'
+import { IRequest, Token } from '../types'
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET
@@ -39,7 +40,23 @@ export const register = async (
       return
     }
     const profile = verificationResponse?.payload
-    console.log(profile)
+    const user: HydratedDocument<IUser> = new User({
+      firstName: profile?.given_name || '',
+      lastName: profile?.family_name || '',
+      email: profile?.email || '',
+      phone: '',
+      password: '',
+      avatar: profile?.picture,
+      verify: !!profile?.email_verified,
+    })
+    const token: Token = generateToken({ id: user._id })
+    await user.save()
+
+    response.json(
+      user.toJSON({
+        transform: (_, ret) => ({ ...ret, ...token }),
+      })
+    )
   } catch (error) {
     next(error)
   }
