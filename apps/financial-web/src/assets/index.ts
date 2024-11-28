@@ -9,3 +9,5 @@ export { default as Letter } from './letter.svg?react'
 export { default as Market } from './market.svg?react'
 export { default as Screener } from './screener.svg?react'
 export { default as Watchlist } from './watchlist.svg?react'
+
+export { default as file } from './file.png'
