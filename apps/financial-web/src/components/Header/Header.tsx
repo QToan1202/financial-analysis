@@ -9,7 +9,9 @@ const Header = () => (
   <chakra.header padding="0.5rem" boxShadow="rgba(0, 0, 0, 0.24) 0px 3px 8px;" bgColor="white">
     <Flex gap="0.75rem" justifyContent="space-between">
       <Flex flex={1} align="center">
-        <Image boxSize="50px" objectFit="cover" src={logo} alt="financial-analysis-web-logo" />
+        <Link to="/">
+          <Image boxSize="50px" objectFit="cover" src={logo} alt="financial-analysis-web-logo" />
+        </Link>
         <Search />
       </Flex>
       <Flex gap="0.25rem">
