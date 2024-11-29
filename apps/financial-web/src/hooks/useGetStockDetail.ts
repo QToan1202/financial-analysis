@@ -9,7 +9,7 @@ import type { Stock } from '@types'
 const useGetStockDetail = (ticket: string): UseQueryResult<Stock, Error> => {
   return useQuery({
     enabled: !!ticket,
-    queryKey: [financialModelingPrepKeys.detail(ticket)],
+    queryKey: financialModelingPrepKeys.detail(ticket),
     queryFn: () => requestFML.get(`v3/profile/${ticket.toUpperCase()}`),
     select: useCallback((data: AxiosResponse<Array<Stock>>) => data.data[0], []),
   })

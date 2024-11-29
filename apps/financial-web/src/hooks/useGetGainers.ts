@@ -8,12 +8,9 @@ import type { Gainer } from '@types'
 
 const useGetGainers = (): UseQueryResult<Gainer[], Error> => {
   return useQuery({
-    queryKey: [financialModelingPrepKeys.list('gainers')],
+    queryKey: financialModelingPrepKeys.list('gainers'),
     queryFn: () => requestFML.get('v3/stock_market/gainers'),
-    select: useCallback(
-      (data: AxiosResponse<Gainer[]>) => data.data.slice(0, 10),
-      []
-    ),
+    select: useCallback((data: AxiosResponse<Gainer[]>) => data.data.slice(0, 10), []),
   })
 }
 

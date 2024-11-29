@@ -8,7 +8,7 @@ import type { News, TickerNewsResponse } from '@types'
 
 const useGetNews = (limit: number = 10): UseQueryResult<News[], Error> => {
   return useQuery({
-    queryKey: [polygonKeys.list('news')],
+    queryKey: polygonKeys.list('news'),
     queryFn: () => requestPo.get('/v2/reference/news', { params: { limit } }),
     select: useCallback((data: AxiosResponse<TickerNewsResponse>) => data.data.results, []),
   })
