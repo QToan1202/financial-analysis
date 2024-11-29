@@ -27,7 +27,7 @@ export const register = async (
 }
 
 export const login = async (
-  request: IRequest<Pick<IUser, 'email' | 'password'>>,
+  request: IRequest<Required<Pick<IUser, 'email' | 'password'>>>,
   response: Response,
   next: NextFunction
 ) => {
