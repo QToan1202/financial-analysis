@@ -21,11 +21,13 @@ const options: ChartProps<'line'>['options'] = {
   responsive: true,
   scales: {
     x: {
-      type: 'time',
+      type: 'timeseries',
       time: {
         unit: 'hour',
       },
-      // bounds: 'ticks',
+      ticks: {
+        maxTicksLimit: 5,
+      },
     },
   },
   elements: {
