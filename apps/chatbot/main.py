@@ -1,5 +1,11 @@
+from uuid import uuid4
+from langchain_community.document_loaders import PyPDFLoader
+from pathlib import Path
+import shutil
+from langchain_core.document_loaders import BaseBlobParser, Blob
 import os
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, UploadFile, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
@@ -42,8 +48,19 @@ app = FastAPI(
     description="A simple api server using CopilotSDK",
     lifespan=lifespan
 )
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allows all origins
+    allow_credentials=True,
+    allow_methods=["*"],  # Allows all methods
+    allow_headers=["*"],  # Allows all headers
+)
+
 
 add_fastapi_endpoint(app, "copilotkit_remote")
+UPLOAD_DIR = Path("./uploads")
+UPLOAD_DIR.mkdir(exist_ok=True)
+
 
 @app.post("/upload")
 async def create_upload_file(file: UploadFile):
