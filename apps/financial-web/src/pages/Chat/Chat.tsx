@@ -1,12 +1,20 @@
-import { FormControl, FormHelperText, FormLabel, Grid, GridItem, Input } from '@chakra-ui/react'
-import { CopilotChat } from '@copilotkit/react-ui'
 import { SubmitHandler, useForm } from 'react-hook-form'
+import {
+  FormControl,
+  FormHelperText,
+  FormLabel,
+  Grid,
+  GridItem,
+  Input,
+  useToast,
+} from '@chakra-ui/react'
+import { CopilotChat } from '@copilotkit/react-ui'
 
-import { Button } from '@components'
+import { Button, FileItem } from '@components'
 
 import '@copilotkit/react-ui/styles.css'
 import { SUPPORT_FILE_EXTENSIONS } from '@constants'
-import { requestForBE } from '@services'
+import { useUploadDocument } from '@hooks'
 
 type UploadDocumentForm = {
   files: FileList
@@ -18,28 +26,45 @@ const Chat = () => {
     watch,
     reset,
     handleSubmit,
-    formState: { isSubmitSuccessful, errors, isDirty },
+    formState: { errors, isDirty },
   } = useForm<UploadDocumentForm>({
     defaultValues: {
       files: undefined,
     },
   })
+  const toast = useToast({
+    duration: 3 * 1000,
+    isClosable: true,
+  })
+  const { mutate: uploadDocument, isPending: isUploadingDocument } = useUploadDocument()
   const handleSubmitFile: SubmitHandler<UploadDocumentForm> = async (values) => {
-    // const data = new FormData()
-    // data.append('file', values.files.item(0) as Blob)
-    // const response = await requestForBE.post('http://localhost:8000/uploadfile', data, {
-    //   headers: {
-    //     'Content-Type': 'multipart/form-data',
-    //   },
-    // })
-    // console.log(response)
-    // if (response.statusText === 'OK') {
-    //   reset()
-    // }
+    uploadDocument(values.files[0], {
+      onSuccess: () => {
+        toast({
+          title: 'Document upload success.',
+          description: 'Your document have uploaded success. Chat with your data now.',
+          status: 'success',
+        })
+        reset()
+      },
+      onError: (error) => {
+        toast({
+          title: 'Document upload fail.',
+          description:
+            error.message || 'Something went wrong. Please try upload your document again.',
+          status: 'error',
+        })
+      },
+    })
   }
 
   return (
-    <Grid templateColumns={'2fr 1fr'} templateRows="minmax(0, 1fr)" gap="0.25rem">
+    <Grid
+      templateColumns={'2fr 1fr'}
+      templateRows="minmax(0, 1fr)"
+      gap="0.25rem"
+      height="calc(90vh - 316px)"
+    >
       <GridItem p="0.5rem">
         <FormControl
           as="form"
@@ -51,6 +76,7 @@ const Chat = () => {
           <Input
             type="file"
             id="file-upload"
+            disabled={isUploadingDocument}
             hidden
             {...register('files', {
               required: 'Your need to upload a file',
@@ -88,10 +114,16 @@ const Chat = () => {
               {errors.files?.message || 'Select and upload the file of your choice'}
             </FormHelperText>
           </FormLabel>
-          <Button type="submit" borderRadius="2px" disabled={!isDirty || !!errors.files}>
+          <Button
+            type="submit"
+            borderRadius="2px"
+            isLoading={isUploadingDocument}
+            disabled={!isDirty || !!errors.files || isUploadingDocument}
+          >
             Upload
           </Button>
         </FormControl>
+        <FileItem id={'1'} name={'Agent document'} type={'PFD'} size={'42994'} />
       </GridItem>
       <GridItem
         as={CopilotChat}

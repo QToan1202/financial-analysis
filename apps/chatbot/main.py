@@ -45,6 +45,22 @@ app = FastAPI(
 
 add_fastapi_endpoint(app, "copilotkit_remote")
 
+@app.post("/upload")
+async def create_upload_file(file: UploadFile):
+    try:
+        # file_path = UPLOAD_DIR / ('[' + str(uuid4()) + ']-' + file.filename)
+        # with file_path.open("wb") as buffer:
+        #     shutil.copyfileobj(file.file, buffer)
+
+        # loader = PyPDFLoader(file_path)
+        # pages = []
+        # async for page in loader.alazy_load():
+        #     pages.append(page)
+
+        return {"filename": file.filename, "message": "Upload file success"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 def main():
     """Run the uvicorn server."""

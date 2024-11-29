@@ -22,6 +22,7 @@ app.use('/copilotkit', runtime)
 
 app.use(require('./router/auth'))
 app.use('/google', require('./router/google'))
+app.use('/document', require('./router/document'))
 
 app.listen(port, () => {
   return console.log(`http://localhost:${port}`)
