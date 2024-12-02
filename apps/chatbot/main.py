@@ -1,10 +1,12 @@
-from uuid import uuid4
-from langchain_community.document_loaders import PyPDFLoader
-from pathlib import Path
-import shutil
-from langchain_core.document_loaders import BaseBlobParser, Blob
+from typing import Annotated
 import os
-from fastapi import FastAPI, UploadFile, HTTPException
+import warnings
+from dotenv import load_dotenv, find_dotenv
+
+from langchain_nvidia_ai_endpoints import NVIDIAEmbeddings
+from langchain_postgres import PGVector
+
+from fastapi import FastAPI, UploadFile, HTTPException, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
@@ -13,6 +15,7 @@ from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from copilotkit_sdk_async import CopilotKitSDKAsync
 from langgraph_agent_async import LangGraphAgentAsync
 
+from file_handler_service import FileService
 from rag.memory import builder as state_graph
 from rag.memory import *
 # from agent import workflow as state_graph
@@ -23,13 +26,26 @@ connection_kwargs = {
     "autocommit": True,
     "prepare_threshold": 0,
 }
-
+connection = os.environ.get("PGVT_CONNECTION")
+collection_name = "documents"
 config = {"configurable": {
     "user_id": "1", "thread_id": "4"}}
+
+_ = load_dotenv(find_dotenv())
+warnings.filterwarnings('ignore')
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    embeddings = NVIDIAEmbeddings(
+        model="nvidia/llama-3.2-nv-embedqa-1b-v1",
+        truncate="END")
+    app.state.vector_store = PGVector(
+        embeddings=embeddings,
+        collection_name=collection_name,
+        connection=connection,
+        use_jsonb=True,
+    )
     async with AsyncPostgresSaver.from_conn_string(DB_URI) as checkpointer:
         graph = state_graph.compile(checkpointer=checkpointer)
         app.state.sdk = CopilotKitSDKAsync(agents=[
@@ -58,21 +74,17 @@ app.add_middleware(
 
 
 add_fastapi_endpoint(app, "copilotkit_remote")
-UPLOAD_DIR = Path("./uploads")
-UPLOAD_DIR.mkdir(exist_ok=True)
 
 
 @app.post("/upload")
-async def create_upload_file(file: UploadFile):
+async def create_upload_file(user_id: Annotated[str, Form()], file: UploadFile = File(...)):
     try:
-        # file_path = UPLOAD_DIR / ('[' + str(uuid4()) + ']-' + file.filename)
-        # with file_path.open("wb") as buffer:
-        #     shutil.copyfileobj(file.file, buffer)
-
-        # loader = PyPDFLoader(file_path)
-        # pages = []
-        # async for page in loader.alazy_load():
-        #     pages.append(page)
+        contents = await file.read()
+        ext = file.filename.split('.')[1]
+        service = FileService(content=contents, file_extension=ext)
+        documents = service.handle_split_file_content(metadata={
+            "filename": file.filename, "size": file.size, "type": file.content_type, "user_id": user_id})
+        app.state.vector_store.add_documents(documents)
 
         return {"filename": file.filename, "message": "Upload file success"}
     except Exception as e:
