@@ -1,4 +1,5 @@
-import axios, { AxiosInstance } from 'axios'
+import { useAuthStore } from '@contexts'
+import axios, { AxiosError, AxiosInstance, AxiosResponse, InternalAxiosRequestConfig } from 'axios'
 
 export const requestForBE: AxiosInstance = axios.create({
   baseURL: import.meta.env.VITE_BASE_URL,
@@ -6,6 +7,18 @@ export const requestForBE: AxiosInstance = axios.create({
     'Content-Type': 'application/json',
   },
 })
+
+requestForBE.interceptors.request.use(
+  (config: InternalAxiosRequestConfig) => {
+    const userInfo = useAuthStore.getState().user
+    if (userInfo.accessToken) {
+      config.headers.Authorization = `Bearer ${userInfo.accessToken}`
+    }
+
+    return config
+  },
+  (error) => Promise.reject(error)
+)
 
 export const requestAA: AxiosInstance = axios.create({
   baseURL: import.meta.env.VITE_AA_URL,
