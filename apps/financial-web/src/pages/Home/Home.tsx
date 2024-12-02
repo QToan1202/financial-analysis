@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { Fragment, useMemo } from 'react'
 import {
   Box,
   Center,
@@ -6,7 +6,6 @@ import {
   CircularProgress,
   Flex,
   Heading,
-  Link,
   Text,
   useToast,
 } from '@chakra-ui/react'
@@ -15,7 +14,7 @@ import { getCoreRowModel, useReactTable } from '@tanstack/react-table'
 import { useGetGainers, useGetLosers, useGetNews } from '@hooks'
 import { NAV_ITEM, TRENDING_INDEXES } from '@constants'
 
-import { Search, Table } from '../../components'
+import { Link, Search, Table } from '@components'
 import { defaultColumn, newsColumn } from './createTable'
 
 const HomePage = () => {
@@ -63,7 +62,7 @@ const HomePage = () => {
       rowGap="1.25rem"
     >
       <Flex direction="column" borderBottomWidth="1px" padding="2rem" rowGap="1.25rem">
-        <Heading as="h1" fontWeight="bold">
+        <Heading as="h1" fontWeight="bold" textAlign="center">
           Search for a stock to start your analysis
         </Heading>
         <Text textAlign="center" fontSize={'1.25rem'} maxW={'850px'}>
@@ -76,13 +75,13 @@ const HomePage = () => {
         <Text textAlign="center">
           Trending:
           {TRENDING_INDEXES.map((item: string, index: number, arr: string[]) => (
-            <>
+            <Fragment key={index}>
               &nbsp;
-              <Link key={index} href="#" textColor="text.link">
+              <Link to={`/detail/${item.toUpperCase()}`} textColor="text.link">
                 {item}
               </Link>
               {arr.length === index + 1 ? null : ','}
-            </>
+            </Fragment>
           ))}
         </Text>
       </Flex>
@@ -105,7 +104,7 @@ const HomePage = () => {
             <Box boxSize={'32px'} marginBottom={1}>
               {icon}
             </Box>
-            <Link>{title}</Link>
+            <Link to="#">{title}</Link>
           </Flex>
         ))}
       </Center>

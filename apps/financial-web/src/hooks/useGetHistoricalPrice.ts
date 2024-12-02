@@ -13,12 +13,12 @@ type TransformStockPricesType = Pick<StockPrice, 'close' | 'date'>
 const useGetHistoricalPrice = (
   ticket: string,
   timeFrame: TimeFrameType = '1min',
-  from: string = dayjs().subtract(1, 'day').format('YYYY-MM-DD'),
+  from: string = dayjs().subtract(1, 'week').format('YYYY-MM-DD'),
   to: string = dayjs().format('YYYY-MM-DD')
 ): UseQueryResult<TransformStockPricesType[], Error> => {
   return useQuery({
     enabled: !!ticket,
-    queryKey: [financialModelingPrepKeys.list(ticket)],
+    queryKey: financialModelingPrepKeys.list(ticket),
     queryFn: () =>
       requestFML.get(`v3/historical-chart/${timeFrame}/${ticket}`, { params: { from, to } }),
     select: useCallback(

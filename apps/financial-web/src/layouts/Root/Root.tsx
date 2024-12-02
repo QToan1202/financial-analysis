@@ -1,14 +1,16 @@
-import { Flex } from '@chakra-ui/react'
+import { Box } from '@chakra-ui/react'
 import { Outlet } from 'react-router-dom'
 
 import { Footer, Header } from '@components'
 
 const Root = () => (
-  <Flex direction="column" gap="1rem">
+  <Box>
     <Header />
-    <Outlet />
+    <Box p="1.5rem 1.25rem">
+      <Outlet />
+    </Box>
     <Footer />
-  </Flex>
+  </Box>
 )
 
 export default Root

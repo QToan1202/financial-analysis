@@ -28,6 +28,9 @@ const ButtonTheme: ComponentStyleConfig = defineStyleConfig({
       bgColor: 'primary.100',
       _hover: {
         bgColor: 'primary.200',
+        _disabled: {
+          bgColor: 'primary.100',
+        },
       },
     },
     outline: {

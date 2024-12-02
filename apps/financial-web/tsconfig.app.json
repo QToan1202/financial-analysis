@@ -32,7 +32,8 @@
       "@factories/*": ["src/factories/*"],
       "@types/*": ["src/types/*"],
       "@constants/*": ["src/constants/*"],
-      "@layouts/*": ["src/layouts/*"]
+      "@layouts/*": ["src/layouts/*"],
+      "@contexts/*": ["src/contexts/*"]
     }
   },
   "include": ["src"]
