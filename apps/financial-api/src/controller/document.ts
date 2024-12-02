@@ -1,11 +1,18 @@
+import axios from 'axios'
 import { NextFunction, Response } from 'express'
-import multer from 'multer'
 
 import { IRequest } from '../types'
-import axios, { AxiosError } from 'axios'
 
-export const uploadDocument = async (request: IRequest, response: Response, next: NextFunction) => {
+export const uploadDocument = async (
+  request: IRequest<{ userId: string }>,
+  response: Response,
+  next: NextFunction
+) => {
   try {
+    if (!request.body.userId) {
+      response.status(400).json({ message: 'Missing data when uploading file' })
+      return
+    }
     if (!request.file) {
       response.status(400).json({ message: 'No file uploaded' })
       return
@@ -15,8 +22,8 @@ export const uploadDocument = async (request: IRequest, response: Response, next
     const fileBlob = new Blob([buffer], {
       type: mimetype,
     })
-    formData.append('file', fileBlob, originalname)
-
+    formData.append('file', fileBlob, Buffer.from(originalname, 'latin1').toString('utf8'))
+    formData.append('user_id', request.body.userId)
     const FASTAPI_UPLOAD_URL = process.env.FASTAPI_UPLOAD_URL || ''
 
     try {

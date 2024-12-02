@@ -9,18 +9,24 @@ import {
   useToast,
 } from '@chakra-ui/react'
 import { CopilotChat } from '@copilotkit/react-ui'
+import { useShallow } from 'zustand/shallow'
 
 import { Button, FileItem } from '@components'
 
 import '@copilotkit/react-ui/styles.css'
 import { SUPPORT_FILE_EXTENSIONS } from '@constants'
 import { useUploadDocument } from '@hooks'
+import { useAuthStore } from '@contexts'
 
 type UploadDocumentForm = {
   files: FileList
+  userId: string
 }
 
 const Chat = () => {
+  const [isAuthenticated, user] = useAuthStore(
+    useShallow((state) => [state.isAuthenticated, state.user])
+  )
   const {
     register,
     watch,
@@ -30,6 +36,7 @@ const Chat = () => {
   } = useForm<UploadDocumentForm>({
     defaultValues: {
       files: undefined,
+      userId: isAuthenticated && user._id ? user._id : undefined,
     },
   })
   const toast = useToast({
@@ -38,7 +45,7 @@ const Chat = () => {
   })
   const { mutate: uploadDocument, isPending: isUploadingDocument } = useUploadDocument()
   const handleSubmitFile: SubmitHandler<UploadDocumentForm> = async (values) => {
-    uploadDocument(values.files[0], {
+    uploadDocument(values, {
       onSuccess: () => {
         toast({
           title: 'Document upload success.',
