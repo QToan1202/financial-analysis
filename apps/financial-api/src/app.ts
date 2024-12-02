@@ -3,7 +3,6 @@ import express from 'express'
 import cors from 'cors'
 
 import { connectDB } from './server'
-import { runtime } from './controller/copilotkit'
 
 const app = express()
 const port = process.env.PORT || 3000
@@ -18,10 +17,11 @@ app.get('/', (req, res) => {
   res.send('Hello World!')
 })
 
-app.use('/copilotkit', runtime)
-
 app.use(require('./router/auth'))
 app.use('/google', require('./router/google'))
+
+app.use(require('./middlewares/auth'))
+app.use('/copilotkit', require('./controller/copilotkit'))
 app.use('/document', require('./router/document'))
 app.use(require('./middlewares/error'))
 

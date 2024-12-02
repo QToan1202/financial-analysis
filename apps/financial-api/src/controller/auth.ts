@@ -73,22 +73,6 @@ export const generateToken = (payload: object | Buffer): Token => {
   return { accessToken, refreshToken }
 }
 
-export const verifyToken = (request: IRequest, response: Response, next: NextFunction) => {
-  const token = request.headers['authorization']
-
-  if (!token) {
-    response.status(401).json({ message: 'Access Denied. No token provided.' })
-    return
-  }
-
-  try {
-    jwt.verify(token.split(' ')[1], process.env.JWT_SECRET as string)
-    next()
-  } catch (err) {
-    response.status(403).json({ message: 'Invalid token.' })
-  }
-}
-
 export const refreshToken = (
   request: IRequest<{ token: string }>,
   response: Response,

@@ -12,7 +12,7 @@ const openai = new OpenAI({
 })
 const serviceAdapter = new OpenAIAdapter({ openai, model: 'meta/llama-3.1-405b-instruct' })
 
-export const runtime = (request: any, response: any, next: NextFunction, ...args: any[]) => {
+export const runtime = (request: any, response: any, next: NextFunction) => {
   const runtime = new CopilotRuntime({
     remoteActions: [
       {
@@ -28,3 +28,5 @@ export const runtime = (request: any, response: any, next: NextFunction, ...args
 
   return handler(request, response, next)
 }
+
+module.exports = runtime
