@@ -20,7 +20,7 @@ createRoot(document.getElementById('root')!).render(
   <QueryClientProvider client={queryClient}>
     <ChakraProvider theme={overrideTheme}>
       <CopilotKit
-        runtimeUrl={`${import.meta.env.VITE_BASE_URL}/copilotkit`}
+        runtimeUrl={`${import.meta.env.VITE_BASE_URL}copilotkit`}
         agent="chat-with-memory-agent"
         showDevConsole={false}
       >
