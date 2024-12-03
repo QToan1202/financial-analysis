@@ -1,17 +1,18 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
-import { IUser } from '@types'
+import { IUser, Token } from '@types'
 
 interface AuthState {
   isHydrated: boolean
   isAuthenticated: boolean
-  user: Partial<IUser>
+  user: Partial<IUser & Token>
 }
 
 interface AuthActions {
   setIsHydrated: (isHydratedState: boolean) => void
-  setUser: (user: Partial<IUser>) => void
+  setUser: (user: Partial<IUser & Token>) => void
+  setAccessToken: (accessToken: string) => void
   clearAuth: () => void
 }
 
@@ -26,7 +27,9 @@ const useAuthStore = create<AuthState & AuthActions>()(
     (set) => ({
       ...initState,
       setIsHydrated: (isHydratedState: boolean) => set({ isHydrated: isHydratedState }),
-      setUser: (user: Partial<IUser>) => set(() => ({ isAuthenticated: true, user })),
+      setUser: (user: Partial<IUser & Token>) => set(() => ({ isAuthenticated: true, user })),
+      setAccessToken: (accessToken: string) =>
+        set((state) => ({ user: { ...state.user, accessToken } })),
       clearAuth: () =>
         set(() => ({ isAuthenticated: initState.isAuthenticated, user: initState.user })),
     }),
