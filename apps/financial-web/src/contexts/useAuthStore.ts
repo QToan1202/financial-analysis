@@ -12,6 +12,7 @@ interface AuthState {
 interface AuthActions {
   setIsHydrated: (isHydratedState: boolean) => void
   setUser: (user: Partial<IUser & Token>) => void
+  setAccessToken: (accessToken: string) => void
   clearAuth: () => void
 }
 
@@ -27,6 +28,8 @@ const useAuthStore = create<AuthState & AuthActions>()(
       ...initState,
       setIsHydrated: (isHydratedState: boolean) => set({ isHydrated: isHydratedState }),
       setUser: (user: Partial<IUser & Token>) => set(() => ({ isAuthenticated: true, user })),
+      setAccessToken: (accessToken: string) =>
+        set((state) => ({ user: { ...state.user, accessToken } })),
       clearAuth: () =>
         set(() => ({ isAuthenticated: initState.isAuthenticated, user: initState.user })),
     }),

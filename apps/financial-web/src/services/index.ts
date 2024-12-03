@@ -1,6 +1,12 @@
 import { useAuthStore } from '@contexts'
 import axios, { AxiosError, AxiosInstance, AxiosResponse, InternalAxiosRequestConfig } from 'axios'
 
+import refreshAccessToken from './auth'
+
+interface CustomRequestConfig extends InternalAxiosRequestConfig {
+  _retry?: boolean
+}
+
 export const requestForBE: AxiosInstance = axios.create({
   baseURL: import.meta.env.VITE_BASE_URL,
   headers: {
@@ -9,7 +15,7 @@ export const requestForBE: AxiosInstance = axios.create({
 })
 
 requestForBE.interceptors.request.use(
-  (config: InternalAxiosRequestConfig) => {
+  (config: CustomRequestConfig) => {
     const userInfo = useAuthStore.getState().user
     if (userInfo.accessToken) {
       config.headers.Authorization = `Bearer ${userInfo.accessToken}`
@@ -18,6 +24,31 @@ requestForBE.interceptors.request.use(
     return config
   },
   (error) => Promise.reject(error)
+)
+
+requestForBE.interceptors.response.use(
+  (response: AxiosResponse) => response,
+  async (error: AxiosError) => {
+    const updateToken = useAuthStore.getState().setAccessToken
+    const clearCredential = useAuthStore.getState().clearAuth
+    const originalRequest = error.config as CustomRequestConfig
+
+    if (error.status !== 401 && originalRequest._retry) return Promise.reject(error)
+    originalRequest._retry = true
+
+    try {
+      const accessToken = await refreshAccessToken()
+      if (!accessToken) return Promise.reject(error)
+      updateToken(accessToken)
+      originalRequest.headers.Authorization = `Bearer ${accessToken}`
+
+      return requestForBE(originalRequest)
+    } catch (refreshError) {
+      // Handle logout when available token expired
+      clearCredential()
+      Promise.reject(refreshError)
+    }
+  }
 )
 
 export const requestAA: AxiosInstance = axios.create({
