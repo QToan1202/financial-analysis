@@ -21,7 +21,7 @@ from dotenv import load_dotenv, find_dotenv
 import tiktoken
 from langchain_community.tools.tavily_search import TavilySearchResults
 from langchain_core.documents import Document
-from langchain_core.messages import get_buffer_string, HumanMessage, AIMessageChunk
+from langchain_core.messages import get_buffer_string, HumanMessage, AIMessageChunk, trim_messages
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import tool
@@ -227,8 +227,27 @@ def load_memories(state: State, config: RunnableConfig) -> State:
 
 def delete_messages(state: State) -> State:
     messages = state["messages"]
-    if len(messages) > 12:
-        return {"messages": [RemoveMessage(msg.id) for msg in messages[:-12]]}
+    messages = trim_messages(messages,
+                             # Keep the last <= n_count tokens of the messages.
+                             strategy="last",
+                             token_counter=len,
+                             # When token_counter=len, each message
+                             # will be counted as a single token.
+                             # Remember to adjust for your use case
+                             max_tokens=12,
+                             # Most chat models expect that chat history starts with either:
+                             # (1) a HumanMessage or
+                             # (2) a SystemMessage followed by a HumanMessage
+                             start_on="human",
+                             # Most chat models expect that chat history ends with either:
+                             # (1) a HumanMessage or
+                             # (2) a ToolMessage
+                             end_on=("human", "tool"),
+                             # Usually, we want to keep the SystemMessage
+                             # if it's present in the original history.
+                             # The SystemMessage has special instructions for the model.
+                             include_system=True,
+                             )
 
     return {"messages": messages}
 
