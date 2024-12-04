@@ -59,11 +59,16 @@ const router = createBrowserRouter([
 ])
 
 function App() {
+  const userInfo = useAuthStore((state) => state.user)
+
   return (
     <CopilotKit
       runtimeUrl={`${import.meta.env.VITE_BASE_URL}copilotkit`}
       agent="chat-with-memory-agent"
       showDevConsole={false}
+      properties={{
+        user_id: userInfo._id,
+      }}
       headers={{
         Authorization: `Bearer ${userInfo.accessToken}`,
       }}

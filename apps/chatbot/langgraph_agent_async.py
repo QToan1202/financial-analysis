@@ -5,6 +5,7 @@ from copilotkit import LangGraphAgent
 from copilotkit.langgraph_agent import _StreamingStateExtractor
 from copilotkit.types import Message
 from copilotkit.action import ActionDict
+from copilotkit.sdk import CopilotKitSDKContext
 
 from typing import Optional, List, Callable, cast, Any
 
@@ -16,6 +17,7 @@ class LangGraphAgentAsync(LangGraphAgent):
     async def execute(  # pylint: disable=too-many-arguments
         self,
         *,
+        context: CopilotKitSDKContext,
         state: dict,
         messages: List[Message],
         thread_id: Optional[str] = None,
@@ -25,6 +27,9 @@ class LangGraphAgentAsync(LangGraphAgent):
         config = ensure_config(cast(Any, self.langgraph_config.copy(
         )) if self.langgraph_config else {})  # pylint: disable=line-too-long
         config["configurable"] = config.get("configurable", {})
+        context_properties = context.get("properties")
+        config["configurable"]["user_id"] = context_properties.get(
+            "user_id", "")
         config["configurable"]["thread_id"] = thread_id
 
         agent_state = await self.graph.aget_state(config)
