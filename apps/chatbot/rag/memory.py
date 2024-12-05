@@ -365,6 +365,15 @@ builder.add_edge("rating_answer", "delete_messages")
 builder.add_edge("delete_messages", END)
 
 
+async def pretty_print_stream_chunk(msg, metadata):
+    if (
+        msg.content
+        and not isinstance(msg, HumanMessage)
+        and metadata["langgraph_node"] == "rating_answer"
+    ):
+        print(msg.content, end="", flush=True)
+
+
 async def main():
     conn = await AsyncConnection.connect(DB_URI, **connection_kwargs)
     checkpointer = AsyncPostgresSaver(conn)
@@ -378,9 +387,7 @@ async def main():
         if query == 'stop':
             break
         async for msg, metadata in graph.astream({"messages": [HumanMessage(query)]}, config=config, stream_mode="messages"):
-            await pretty_print_stream_chunk(msg)
-
-    messages = await graph.aget_state(config)
+            await pretty_print_stream_chunk(msg, metadata)
 
 if __name__ == "__main__":
     asyncio.run(main())
