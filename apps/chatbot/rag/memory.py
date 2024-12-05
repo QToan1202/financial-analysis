@@ -1,3 +1,4 @@
+from langgraph.errors import GraphRecursionError
 from .adaptive_rag import app as adaptive_retrieve
 import sys
 import asyncio
@@ -6,11 +7,9 @@ if sys.platform.startswith('win'):
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 from psycopg import AsyncConnection
-from langchain_core.messages import RemoveMessage
 from pydantic import BaseModel, Field
 import uuid
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
-from langgraph.checkpoint.postgres import PostgresSaver
 import warnings
 from langchain_nvidia_ai_endpoints import NVIDIAEmbeddings
 from langchain_postgres.vectorstores import PGVector
@@ -30,13 +29,15 @@ from langchain_nvidia_ai_endpoints import ChatNVIDIA
 from langgraph.graph import END, START, MessagesState, StateGraph, add_messages
 from langgraph.prebuilt import ToolNode
 
+from copilotkit.langchain import copilotkit_customize_config
+
 
 _ = load_dotenv(find_dotenv())
 
 warnings.filterwarnings('ignore')
 
 connection = os.environ.get("PGVT_CONNECTION")
-collection_name = "documents"
+collection_name = "memories"
 
 embeddings = NVIDIAEmbeddings(
     model="nvidia/llama-3.2-nv-embedqa-1b-v1",
@@ -183,11 +184,12 @@ bound = prompt | model_with_tools
 tokenizer = tiktoken.encoding_for_model("gpt-4o")
 
 
-async def agent(state: State) -> State:
+async def agent(state: State, config: RunnableConfig) -> State:
     """Process the current state and generate a response using the LLM.
 
     Args:
         state (schemas.State): The current state of the conversation.
+        config (RunnableConfig): The runtime configuration for the agent.
 
     Returns:
         schemas.State: The updated state with the agent's response.
@@ -196,11 +198,14 @@ async def agent(state: State) -> State:
     recall_str = (
         "<recall_memory>\n" + memories + "\n</recall_memory>"
     )
+    modified_config = copilotkit_customize_config(
+        config, emit_messages=False)
     prediction = await bound.ainvoke(
         {
             "messages": state["messages"],
             "recall_memories": recall_str,
-        }
+        },
+        config=modified_config
     )
     return {
         "messages": [prediction],
