@@ -1,3 +1,5 @@
+from langgraph.errors import GraphRecursionError
+from .adaptive_rag import app as adaptive_retrieve
 import sys
 import asyncio
 
@@ -5,11 +7,9 @@ if sys.platform.startswith('win'):
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 from psycopg import AsyncConnection
-from langchain_core.messages import RemoveMessage
 from pydantic import BaseModel, Field
 import uuid
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
-from langgraph.checkpoint.postgres import PostgresSaver
 import warnings
 from langchain_nvidia_ai_endpoints import NVIDIAEmbeddings
 from langchain_postgres.vectorstores import PGVector
@@ -21,13 +21,15 @@ from dotenv import load_dotenv, find_dotenv
 import tiktoken
 from langchain_community.tools.tavily_search import TavilySearchResults
 from langchain_core.documents import Document
-from langchain_core.messages import get_buffer_string, HumanMessage, AIMessageChunk
-from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.messages import get_buffer_string, HumanMessage, RemoveMessage, trim_messages, AIMessage, AnyMessage
+from langchain_core.prompts import ChatPromptTemplate, PromptTemplate
 from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import tool
 from langchain_nvidia_ai_endpoints import ChatNVIDIA
-from langgraph.graph import END, START, MessagesState, StateGraph
+from langgraph.graph import END, START, MessagesState, StateGraph, add_messages
 from langgraph.prebuilt import ToolNode
+
+from copilotkit.langchain import copilotkit_customize_config
 
 
 _ = load_dotenv(find_dotenv())
@@ -35,7 +37,7 @@ _ = load_dotenv(find_dotenv())
 warnings.filterwarnings('ignore')
 
 connection = os.environ.get("PGVT_CONNECTION")
-collection_name = "documents"
+collection_name = "memories"
 
 embeddings = NVIDIAEmbeddings(
     model="nvidia/llama-3.2-nv-embedqa-1b-v1",
@@ -110,13 +112,14 @@ def search_recall_memories(query: str, config: RunnableConfig) -> str:
     return "\n".join(document.page_content for document in documents)
 
 
-search = TavilySearchResults(max_results=1)
+search = TavilySearchResults(max_results=3)
 tools = [save_recall_memory, search_recall_memories, search]
 
 
 class State(MessagesState):
     # add memories that will be retrieved based on the conversation context
     recall_memories: List[str]
+    rag_retrieve: str
 
 
 # Define the prompt template for the agent
@@ -181,11 +184,12 @@ bound = prompt | model_with_tools
 tokenizer = tiktoken.encoding_for_model("gpt-4o")
 
 
-async def agent(state: State) -> State:
+async def agent(state: State, config: RunnableConfig) -> State:
     """Process the current state and generate a response using the LLM.
 
     Args:
         state (schemas.State): The current state of the conversation.
+        config (RunnableConfig): The runtime configuration for the agent.
 
     Returns:
         schemas.State: The updated state with the agent's response.
@@ -194,11 +198,14 @@ async def agent(state: State) -> State:
     recall_str = (
         "<recall_memory>\n" + memories + "\n</recall_memory>"
     )
+    modified_config = copilotkit_customize_config(
+        config, emit_messages=False)
     prediction = await bound.ainvoke(
         {
             "messages": state["messages"],
             "recall_memories": recall_str,
-        }
+        },
+        config=modified_config
     )
     return {
         "messages": [prediction],
@@ -225,56 +232,151 @@ def load_memories(state: State, config: RunnableConfig) -> State:
     }
 
 
+def retrieve_with_adaptive_rag(state: State, config: RunnableConfig) -> State:
+    """Retrieval in the store for separate answer along with Agent
+
+    Args:
+        state (schemas.State): The current state of the conversation.
+        config (RunnableConfig): The runtime configuration for the agent.
+
+    Returns:
+        State: The updated state with retrieval from vector store.
+    """
+    query: HumanMessage = state["messages"][-1]
+    config_with_recursive = config | {"recursion_limit": 7 + 5}
+    modified_config = copilotkit_customize_config(
+        config_with_recursive, emit_messages=False)
+    final_response = ""
+    try:
+        answer = adaptive_retrieve.invoke(
+            {"question": query.content}, config=modified_config)
+        final_response = answer.get("generation", "I don't know")
+    except GraphRecursionError:
+        print("Recursion Error")
+
+    return {"rag_retrieve": final_response}
+
+
+def rating_answer(state: State, config: RunnableConfig) -> State:
+    """Compare the answer from Agent with the answer from the retrieve.
+    And give back to user the best answer
+
+    Args:
+        state (schemas.State): The current state of the conversation.
+        config (RunnableConfig): The runtime configuration for the agent.
+
+    Returns:
+        State: The updated state with loaded memories.
+    """
+    messages = state["messages"]
+    answer_by_agent = state["messages"][-1]
+    answer_by_retrieval = state["rag_retrieve"]
+
+    template = """
+      You are an evaluator tasked with selecting and delivering 
+      the best possible answer to the user based on the following inputs:
+
+      1. Agent Answer: {agent_answer}
+      2. Retrieved Answer: {retriever_answer}
+      Evaluate these answers using the following criteria:
+
+        * Accuracy: Which answer is more factually correct and relevant to the question or prompt?
+        * Completeness: Which answer provides a more thorough and comprehensive response?
+        * Clarity: Which answer is easier to understand and communicates the information effectively?
+         If one answer clearly outperforms the other, choose that as the final response.
+         If both answers have merits or could be combined for a better response, 
+         synthesize the information into a single, clear, and accurate final answer.
+
+      Final Answer: 
+      [Provide only the final answer here with no additional explanation or commentary, even a keyword]
+      Note: If one of following inputs (Agent Answer or Retrieved Answer) is missing. You just need to
+            repeat the exist answer cause it have nothing to evaluate.
+      """
+
+    prompt = PromptTemplate.from_template(template)
+    reinforcement_chain = prompt | chat_model
+    choice = reinforcement_chain.invoke(
+        {"agent_answer": answer_by_agent.content, "retriever_answer": answer_by_retrieval})
+    replace_last_message = AIMessage(
+        content=choice.content, id=answer_by_agent.id)
+
+    return {"messages": add_messages(messages, replace_last_message)}
+
+
 def delete_messages(state: State) -> State:
     messages = state["messages"]
-    if len(messages) > 12:
-        return {"messages": [RemoveMessage(msg.id) for msg in messages[:-12]]}
+    keep_messages = trim_messages(messages,
+                                  # Keep the last <= n_count tokens of the messages.
+                                  strategy="last",
+                                  token_counter=len,
+                                  # When token_counter=len, each message
+                                  # will be counted as a single token.
+                                  # Remember to adjust for your use case
+                                  max_tokens=12,
+                                  # Most chat models expect that chat history starts with either:
+                                  # (1) a HumanMessage or
+                                  # (2) a SystemMessage followed by a HumanMessage
+                                  start_on="human",
+                                  # Most chat models expect that chat history ends with either:
+                                  # (1) a HumanMessage or
+                                  # (2) a ToolMessage
+                                  end_on=("human", "tool"),
+                                  # Usually, we want to keep the SystemMessage
+                                  # if it's present in the original history.
+                                  # The SystemMessage has special instructions for the model.
+                                  include_system=True,
+                                  )
+    keep_msg_ids = {keep.id for keep in keep_messages}
 
-    return {"messages": messages}
+    return {"messages": [RemoveMessage(id=msg.id) for msg in messages if msg.id not in keep_msg_ids]}
 
 
-def route_tools(state: State) -> Literal["tools", "delete_messages"]:
+def route_tools(state: State) -> Literal["tools", "rating_answer"]:
     """Determine whether to use tools or end the conversation based on the last message.
 
     Args:
         state (schemas.State): The current state of the conversation.
 
     Returns:
-        Literal["tools", "delete_messages"]: The next step in the graph.
+        Literal["tools", "rating_answer"]: The next step in the graph.
     """
 
     msg = state["messages"][-1]
     if msg.tool_calls:
         return "tools"
 
-    return "delete_messages"
-
-
-async def pretty_print_stream_chunk(msg):
-    if isinstance(msg, AIMessageChunk):
-        print(msg.content, end="", flush=True)
-        if msg.response_metadata.get("finish_reason", "") == "stop":
-            print("\n")
-    else:
-        print(msg.content)
-        print("\n")
+    return "rating_answer"
 
 # Create the graph and add nodes
 
 
 builder = StateGraph(State)
 # builder.add_node(load_memories)
-builder.add_node(delete_messages)
 builder.add_node(agent)
+builder.add_node("retrieve", retrieve_with_adaptive_rag)
+builder.add_node(delete_messages)
+builder.add_node(rating_answer)
 builder.add_node("tools", ToolNode(tools))
 
 # Add edges to the graph
 # builder.add_edge(START, "load_memories")
 builder.add_edge(START, "agent")
+builder.add_edge(START, "retrieve")
+builder.add_edge("retrieve", "rating_answer")
 builder.add_conditional_edges(
-    "agent", route_tools, ["tools", "delete_messages"])
+    "agent", route_tools, ["tools", "rating_answer"])
 builder.add_edge("tools", "agent")
+builder.add_edge("rating_answer", "delete_messages")
 builder.add_edge("delete_messages", END)
+
+
+async def pretty_print_stream_chunk(msg, metadata):
+    if (
+        msg.content
+        and not isinstance(msg, HumanMessage)
+        and metadata["langgraph_node"] == "rating_answer"
+    ):
+        print(msg.content, end="", flush=True)
 
 
 async def main():
@@ -290,9 +392,7 @@ async def main():
         if query == 'stop':
             break
         async for msg, metadata in graph.astream({"messages": [HumanMessage(query)]}, config=config, stream_mode="messages"):
-            await pretty_print_stream_chunk(msg)
-
-    messages = await graph.aget_state(config)
+            await pretty_print_stream_chunk(msg, metadata)
 
 if __name__ == "__main__":
     asyncio.run(main())

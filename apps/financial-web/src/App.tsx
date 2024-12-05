@@ -4,6 +4,7 @@ import { GoogleOAuthProvider } from '@react-oauth/google'
 import { Root } from '@layouts'
 import { ChatPage, DetailPage, HomePage, NewsPage, SignInPage, SignUpPage } from '@pages'
 import { useAuthStore } from '@contexts'
+import { CopilotKit } from '@copilotkit/react-core'
 
 const authLoader = () => {
   const isAuthenticated = useAuthStore.getState().isAuthenticated
@@ -58,10 +59,24 @@ const router = createBrowserRouter([
 ])
 
 function App() {
+  const userInfo = useAuthStore((state) => state.user)
+
   return (
-    <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
-      <RouterProvider router={router} />
-    </GoogleOAuthProvider>
+    <CopilotKit
+      runtimeUrl={`${import.meta.env.VITE_BASE_URL}copilotkit`}
+      agent="chat-with-memory-agent"
+      showDevConsole={false}
+      properties={{
+        user_id: userInfo._id,
+      }}
+      headers={{
+        Authorization: `Bearer ${userInfo.accessToken}`,
+      }}
+    >
+      <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
+        <RouterProvider router={router} />
+      </GoogleOAuthProvider>
+    </CopilotKit>
   )
 }
 

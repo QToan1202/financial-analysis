@@ -29,6 +29,7 @@ class CopilotKitSDKAsync(CopilotKitSDK):
 
         try:
             return await agent.execute(
+                context=context,
                 thread_id=thread_id,
                 node_name=node_name,
                 state=state,

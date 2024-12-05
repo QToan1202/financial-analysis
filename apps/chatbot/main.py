@@ -28,8 +28,6 @@ connection_kwargs = {
 }
 connection = os.environ.get("PGVT_CONNECTION")
 collection_name = "documents"
-config = {"configurable": {
-    "user_id": "1", "thread_id": "4"}}
 
 _ = load_dotenv(find_dotenv())
 warnings.filterwarnings('ignore')
@@ -53,7 +51,6 @@ async def lifespan(app: FastAPI):
                 name="chat-with-memory-agent",
                 description="Agent that answers interact with human",
                 graph=graph,
-                langgraph_config=config,
             )
         ])
         yield

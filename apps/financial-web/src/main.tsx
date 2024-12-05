@@ -1,7 +1,6 @@
 // import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { ChakraProvider } from '@chakra-ui/react'
-import { CopilotKit } from '@copilotkit/react-core'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
 import App from './App.tsx'
@@ -19,13 +18,7 @@ createRoot(document.getElementById('root')!).render(
   // <StrictMode>
   <QueryClientProvider client={queryClient}>
     <ChakraProvider theme={overrideTheme}>
-      <CopilotKit
-        runtimeUrl={`${import.meta.env.VITE_BASE_URL}copilotkit`}
-        agent="chat-with-memory-agent"
-        showDevConsole={false}
-      >
-        <App />
-      </CopilotKit>
+      <App />
     </ChakraProvider>
   </QueryClientProvider>
   // </StrictMode>
