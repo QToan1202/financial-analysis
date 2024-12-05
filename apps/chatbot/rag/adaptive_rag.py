@@ -1,3 +1,4 @@
+from typing import Literal
 from langgraph.graph import END, StateGraph, START
 
 from typing_extensions import TypedDict
@@ -28,6 +29,58 @@ llm = ChatNVIDIA(
     model="meta/llama-3.1-405b-instruct",
     temperature=0.0,
 )
+
+# Route query
+
+
+class RouteQuery(BaseModel):
+    """
+    A model representing a routing decision for user queries. 
+    Determines whether a query is processed via RAG (Retrieval-Augmented Generation) 
+    or handled as a regular chatbot conversation.
+    """
+
+    route: Literal["RAG", "Chatbot"] = Field(
+        ..., description="The determined route for processing: 'RAG' or 'Chatbot'.")
+
+
+llm = ChatNVIDIA(
+    model="meta/llama-3.1-405b-instruct",
+    temperature=0.0,
+)
+structured_llm_router = llm.with_structured_output(RouteQuery)
+system = """
+You are a smart router determining whether to process a user's input using the RAG retrieval system or 
+handle it as a conversational response from the chatbot. Follow these steps:
+
+  1. Use the RAG process if the input. 
+     * Requires detailed factual retrieval from a specific knowledge base or document.
+     * Mentions topics not covered by the chatbot's general knowledge or external tools
+
+     Examples include:
+      * 'What is the financial projection for Q3 2024?'
+      * 'Summarize the company's annual report.'
+      * 'Retrieve details about document X.'
+
+  2. Handle it as a chatbot interaction if the input. 
+     * Seeks up-to-date information such as weather, current events, or trending topics (use the web search tool as needed).
+     * Relates to user-specific references that can be resolved using long-term memory.
+     * Involves casual conversation, creative tasks, or opinion-based queries
+
+     Examples include:
+      * 'What's the weather like in DaNang today?'
+      * 'Tell me a joke.'
+      * 'Hi'
+
+Output:
+  * If RAG is needed, respond with: "RAG"
+  * If it's a regular conversation, respond directly as a "Chatbot"
+"""
+
+route_prompt = ChatPromptTemplate.from_messages(
+    [("system", system), ("human", "{question}")])
+
+route_chain = route_prompt | structured_llm_router
 
 # Retrieval Grader
 
@@ -241,6 +294,22 @@ def transform_query(state: State) -> State:
 
 
 # Edges
+def route_question(state):
+    """
+    Route question to Chatbot or RAG.
+
+    Args:
+        state (dict): The current graph state
+
+    Returns:
+        str: Next node to call
+    """
+    question = state["question"]
+    source = route_chain.invoke({"question": question})
+
+    return source.route
+
+
 def decide_to_generate(state):
     """
     Determines whether to generate an answer, or re-generate a question.
@@ -305,7 +374,14 @@ workflow.add_node("generate", generate)
 workflow.add_node("transform_query", transform_query)
 
 # Build graph
-workflow.add_edge(START, "retrieve")
+workflow.add_conditional_edges(
+    START,
+    route_question,
+    {
+        "Chatbot": END,
+        "RAG": "retrieve",
+    },
+)
 workflow.add_edge("retrieve", "grade_documents")
 workflow.add_conditional_edges(
     "grade_documents",
@@ -330,6 +406,6 @@ workflow.add_conditional_edges(
 app = workflow.compile()
 
 # Run
-config = {"configurable": {"thread_id": "rag_thread", "user_id": "1"}}
-inputs = "What are is CoT?"
-out = app.invoke({"question": inputs}, config=config)
+# config = {"configurable": {"thread_id": "rag_thread", "user_id": "1"}}
+# inputs = "What are is CoT?"
+# out = app.invoke({"question": inputs}, config=config)
