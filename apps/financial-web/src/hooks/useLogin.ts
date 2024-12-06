@@ -1,4 +1,5 @@
 import { UseMutationResult, useMutation } from '@tanstack/react-query'
+import { useNavigate } from 'react-router-dom'
 
 import { useAuthStore } from '@contexts'
 import { requestForBE } from '@services'
@@ -9,12 +10,14 @@ const useLogin = (
   path: string
 ): UseMutationResult<AxiosResponse<IUser & Token>, Error, SignInForm, unknown> => {
   const setUser = useAuthStore((state) => state.setUser)
+  const navigate = useNavigate()
 
   return useMutation<AxiosResponse<IUser & Token>, Error, SignInForm, unknown>({
     mutationFn: ({ account, password }: SignInForm): Promise<AxiosResponse<IUser & Token>> =>
       requestForBE.post(path, { email: account, password: password }),
     onSuccess: (data: AxiosResponse<IUser & Token>) => {
       setUser(data.data)
+      navigate('/')
     },
   })
 }

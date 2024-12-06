@@ -1,6 +1,7 @@
 import { useGoogleLogin as useLogin, UseGoogleLoginOptionsAuthCodeFlow } from '@react-oauth/google'
 import { useToast } from '@chakra-ui/react'
 import { AxiosError, AxiosResponse } from 'axios'
+import { useNavigate } from 'react-router-dom'
 
 import { IUser, Token } from '@types'
 import { useAuthStore } from '@contexts'
@@ -12,6 +13,7 @@ const useGoogleLogin = (path: string, options?: UseGoogleLoginOptionsAuthCodeFlo
     duration: 3 * 1000,
     isClosable: true,
   })
+  const navigate = useNavigate()
   const login = useLogin({
     onSuccess: async (tokenResponse) => {
       try {
@@ -36,6 +38,7 @@ const useGoogleLogin = (path: string, options?: UseGoogleLoginOptionsAuthCodeFlo
         })
 
         setUser(responseFromBE.data)
+        navigate('/')
         options?.onSuccess?.(tokenResponse)
       } catch (error) {
         if (error instanceof AxiosError) {
