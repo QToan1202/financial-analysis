@@ -6,6 +6,8 @@ import { ChatPage, DetailPage, HomePage, NewsPage, SignInPage, SignUpPage } from
 import { useAuthStore } from '@contexts'
 import { CopilotKit } from '@copilotkit/react-core'
 
+import './global.css'
+
 const authLoader = () => {
   const isAuthenticated = useAuthStore.getState().isAuthenticated
 
