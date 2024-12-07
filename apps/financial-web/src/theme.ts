@@ -54,6 +54,7 @@ const theme = extendTheme({
     gray: {
       50: '#f9fafb',
       100: '#666666',
+      bg: '#f3f4f6',
     },
     green: {
       50: '#15803d',
