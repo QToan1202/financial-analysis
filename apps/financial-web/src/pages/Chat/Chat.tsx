@@ -66,12 +66,7 @@ const Chat = () => {
   }
 
   return (
-    <Grid
-      templateColumns={'2fr 1fr'}
-      templateRows="minmax(0, 1fr)"
-      gap="0.25rem"
-      height="calc(90vh - 316px)"
-    >
+    <Grid templateColumns={'1fr 1fr'} templateRows="minmax(0, 1fr)" gap="0.25rem" height="700px">
       <GridItem p="0.5rem">
         <FormControl
           as="form"
