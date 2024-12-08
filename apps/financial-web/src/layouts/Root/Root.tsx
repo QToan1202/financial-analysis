@@ -1,14 +1,14 @@
-import { Box } from '@chakra-ui/react'
+import { Box, Flex } from '@chakra-ui/react'
 import { Outlet } from 'react-router-dom'
 
 import { Footer, Header } from '@components'
 
 const Root = () => (
-  <Box>
+  <Box display="flex" flexDirection="column" minH="100vh" w="full">
     <Header />
-    <Box p="1.5rem 1.25rem">
+    <Flex flex={1} p="1.5rem 1.25rem">
       <Outlet />
-    </Box>
+    </Flex>
     <Footer />
   </Box>
 )

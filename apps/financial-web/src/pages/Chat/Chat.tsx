@@ -17,11 +17,11 @@ import { CopilotChat } from '@copilotkit/react-ui'
 import { useShallow } from 'zustand/shallow'
 
 import { Button, FileItem } from '@components'
-
-import '@copilotkit/react-ui/styles.css'
 import { SUPPORT_FILE_EXTENSIONS } from '@constants'
 import { useDeleteDocument, useGetDocuments, useUploadDocument } from '@hooks'
 import { useAuthStore } from '@contexts'
+
+import '@copilotkit/react-ui/styles.css'
 
 type UploadDocumentForm = {
   files: FileList
@@ -113,8 +113,8 @@ const Chat = () => {
   }, [documents, errorDocs, isGetDocuments])
 
   return (
-    <Grid templateColumns={'1fr 1fr'} templateRows="minmax(0, 1fr)" gap="0.25rem" height="700px">
-      <GridItem p="0.5rem">
+    <Grid flex={1} templateColumns={'1fr 1fr'} templateRows="minmax(0, 1fr)">
+      <GridItem p="0.5rem" borderColor="gray.300" borderRightWidth="0.5px">
         <FormControl
           as="form"
           display="flex"
@@ -198,8 +198,11 @@ const Chat = () => {
         </Fade>
       </GridItem>
       <GridItem
+        borderColor="gray.300"
+        borderLeftWidth="0.5px"
         as={CopilotChat}
         height="100%"
+        p="0.5rem"
         instructions={
           'You are assisting the user as best as you can. Answer in the best way possible given the data you have.'
         }
@@ -207,7 +210,7 @@ const Chat = () => {
           title: 'Your Assistant',
           initial: 'Hi! 👋 How can I assist you today?',
         }}
-      ></GridItem>
+      />
     </Grid>
   )
 }

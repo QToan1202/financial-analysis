@@ -118,105 +118,111 @@ const HomePage = () => {
   if (isPending) return <CircularProgress isIndeterminate color="primary.100" />
 
   return (
-    <Flex
-      bgColor="white"
-      direction="column"
-      justifyContent="center"
-      alignItems="center"
-      rowGap="1.25rem"
-    >
-      <Flex direction="column" borderBottomWidth="1px" padding="2rem" rowGap="1.25rem">
-        <Heading as="h1" fontWeight="bold" textAlign="center">
-          Search for a stock to start your analysis
-        </Heading>
-        <Text textAlign="center" fontSize={'1.25rem'} maxW={'850px'}>
-          Accurate information on 68,000+ stocks and funds, including all the companies in the
-          S&P500 index. See stock prices, news, financials, forecasts, charts and more.
-        </Text>
-        <chakra.form
-          pos="relative"
-          display="flex"
-          width="full"
-          mx="auto"
-          mb="1.25rem"
+    <Center flex={1}>
+      {!isPending ? (
+        <Flex
+          bgColor="white"
+          direction="column"
           justifyContent="center"
+          alignItems="center"
+          rowGap="1.25rem"
         >
-          <Search
-            placeholder="Company or stock symbol..."
-            ref={searchRef}
-            onChangeText={handleSearch}
-            onClick={handleClickSearch}
-          />
-          {isFocused ? (
-            <UnorderedList
-              maxW="75%"
-              styleType="none"
-              margin={0}
-              position="absolute"
-              top="40px"
-              bg="white"
-              boxShadow="rgba(0, 0, 0, 0.24) 0px 1px 2px;"
-              borderColor="border.default"
-              borderWidth="1px"
-              overflowY="auto"
-              w="full"
-              zIndex={40}
+          <Flex direction="column" borderBottomWidth="1px" padding="2rem" rowGap="1.25rem">
+            <Heading as="h1" fontWeight="bold" textAlign="center">
+              Search for a stock to start your analysis
+            </Heading>
+            <Text textAlign="center" fontSize={'1.25rem'} maxW={'850px'}>
+              Accurate information on 68,000+ stocks and funds, including all the companies in the
+              S&P500 index. See stock prices, news, financials, forecasts, charts and more.
+            </Text>
+            <chakra.form
+              pos="relative"
+              display="flex"
+              width="full"
+              mx="auto"
+              mb="1.25rem"
+              justifyContent="center"
             >
-              {SearchItem}
-            </UnorderedList>
-          ) : null}
-        </chakra.form>
-        <Text textAlign="center">
-          Trending:
-          {TRENDING_INDEXES.map((item: string, index: number, arr: string[]) => (
-            <Fragment key={index}>
-              &nbsp;
-              <Link to={`/detail/${item.toUpperCase()}`} textColor="text.link">
-                {item}
-              </Link>
-              {arr.length === index + 1 ? null : ','}
-            </Fragment>
-          ))}
-        </Text>
-      </Flex>
-      <Center gap="1.5rem">
-        {NAV_ITEM.map(({ id, icon, title }) => (
-          <Flex
-            borderRadius="0.5rem"
-            width="170px"
-            height="100px"
-            direction="column"
-            align="center"
-            padding="1rem"
-            borderWidth="1px"
-            borderColor="rgb(209, 213, 219)"
-            key={id}
-            _hover={{
-              boxShadow: 'md',
-            }}
-          >
-            <Box boxSize={'32px'} marginBottom={1}>
-              {icon}
-            </Box>
-            <Link to="#">{title}</Link>
+              <Search
+                placeholder="Company or stock symbol..."
+                ref={searchRef}
+                onChangeText={handleSearch}
+                onClick={handleClickSearch}
+              />
+              {isFocused ? (
+                <UnorderedList
+                  maxW="75%"
+                  styleType="none"
+                  margin={0}
+                  position="absolute"
+                  top="40px"
+                  bg="white"
+                  boxShadow="rgba(0, 0, 0, 0.24) 0px 1px 2px;"
+                  borderColor="border.default"
+                  borderWidth="1px"
+                  overflowY="auto"
+                  w="full"
+                  zIndex={40}
+                >
+                  {SearchItem}
+                </UnorderedList>
+              ) : null}
+            </chakra.form>
+            <Text textAlign="center">
+              Trending:
+              {TRENDING_INDEXES.map((item: string, index: number, arr: string[]) => (
+                <Fragment key={index}>
+                  &nbsp;
+                  <Link to={`/detail/${item.toUpperCase()}`} textColor="text.link">
+                    {item}
+                  </Link>
+                  {arr.length === index + 1 ? null : ','}
+                </Fragment>
+              ))}
+            </Text>
           </Flex>
-        ))}
-      </Center>
-      <Flex gap="3rem">
-        <Flex direction="column" justify="flex-start" align="flex-start" rowGap="0.5rem">
-          <Heading as="h2">Top Gainers</Heading>
-          <Table table={gainerTable} />
+          <Center gap="1.5rem">
+            {NAV_ITEM.map(({ id, icon, title }) => (
+              <Flex
+                borderRadius="0.5rem"
+                width="170px"
+                height="100px"
+                direction="column"
+                align="center"
+                padding="1rem"
+                borderWidth="1px"
+                borderColor="rgb(209, 213, 219)"
+                key={id}
+                _hover={{
+                  boxShadow: 'md',
+                }}
+              >
+                <Box boxSize={'32px'} marginBottom={1}>
+                  {icon}
+                </Box>
+                <Link to="#">{title}</Link>
+              </Flex>
+            ))}
+          </Center>
+          <Flex gap="3rem">
+            <Flex direction="column" justify="flex-start" align="flex-start" rowGap="0.5rem">
+              <Heading as="h2">Top Gainers</Heading>
+              <Table table={gainerTable} />
+            </Flex>
+            <Flex direction="column" justify="flex-start" align="flex-start" rowGap="0.5rem">
+              <Heading as="h2">Top Losers</Heading>
+              <Table table={loserTable} />
+            </Flex>
+          </Flex>
+          <Flex direction="column" justify="flex-start" align="flex-start" rowGap="0.5rem">
+            <Heading as="h2">Market news</Heading>
+            <Table table={newsTable} variant="simple" isShowHeader={false} fullBorder={false} />
+          </Flex>
         </Flex>
-        <Flex direction="column" justify="flex-start" align="flex-start" rowGap="0.5rem">
-          <Heading as="h2">Top Losers</Heading>
-          <Table table={loserTable} />
-        </Flex>
-      </Flex>
-      <Flex direction="column" justify="flex-start" align="flex-start" rowGap="0.5rem">
-        <Heading as="h2">Market news</Heading>
-        <Table table={newsTable} variant="simple" isShowHeader={false} fullBorder={false} />
-      </Flex>
-    </Flex>
+      ) : (
+        <CircularProgress isIndeterminate color="primary.100" />
+      )}
+    </Center>
   )
 }
 
