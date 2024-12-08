@@ -21,3 +21,11 @@ export const polygonKeys = {
   details: () => [...polygonKeys.all, 'detail'] as const,
   detail: (id: string) => [...polygonKeys.details(), id] as const,
 }
+
+export const documentKeys = {
+  all: ['Express'] as const,
+  lists: () => [...documentKeys.all, 'list'] as const,
+  list: (filters: string) => [...documentKeys.lists(), { filters }] as const,
+  details: () => [...documentKeys.all, 'detail'] as const,
+  detail: (id: string) => [...documentKeys.details(), id] as const,
+}

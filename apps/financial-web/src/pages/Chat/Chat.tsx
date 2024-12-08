@@ -1,5 +1,10 @@
+import { useCallback, useMemo } from 'react'
 import { SubmitHandler, useForm } from 'react-hook-form'
 import {
+  Box,
+  Center,
+  CircularProgress,
+  Fade,
   FormControl,
   FormHelperText,
   FormLabel,
@@ -15,7 +20,7 @@ import { Button, FileItem } from '@components'
 
 import '@copilotkit/react-ui/styles.css'
 import { SUPPORT_FILE_EXTENSIONS } from '@constants'
-import { useUploadDocument } from '@hooks'
+import { useDeleteDocument, useGetDocuments, useUploadDocument } from '@hooks'
 import { useAuthStore } from '@contexts'
 
 type UploadDocumentForm = {
@@ -64,6 +69,48 @@ const Chat = () => {
       },
     })
   }
+  const { mutate: deleteDocument } = useDeleteDocument()
+  const handleDeleteDoc = useCallback((id: string) => {
+    deleteDocument(id, {
+      onSuccess: () => {
+        toast({
+          title: 'Delete document success.',
+          description: 'Your document have been deleted success',
+          status: 'success',
+        })
+      },
+      onError: (error) => {
+        toast({
+          title: 'Delete document fail.',
+          description: error.message || 'Something went wrong. Please try again.',
+          status: 'error',
+        })
+      },
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+  const { data: documents, isPending: isGetDocuments, error: errorDocs } = useGetDocuments()
+  const DocumentSection = useMemo(() => {
+    if (isGetDocuments)
+      return (
+        <Center>
+          <CircularProgress isIndeterminate color="primary.100" />
+        </Center>
+      )
+    if (errorDocs) {
+      toast({
+        title: 'Get documents fail.',
+        description: errorDocs.message || 'Something went wrong. Reload page to try again.',
+        status: 'error',
+      })
+      return
+    }
+
+    return documents.map(({ _id, ...rest }) => (
+      <FileItem my="0.25rem" key={_id} id={_id} {...rest} onDeleteFile={handleDeleteDoc} />
+    ))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [documents, errorDocs, isGetDocuments])
 
   return (
     <Grid templateColumns={'1fr 1fr'} templateRows="minmax(0, 1fr)" gap="0.25rem" height="700px">
@@ -125,7 +172,30 @@ const Chat = () => {
             Upload
           </Button>
         </FormControl>
-        <FileItem id={'1'} name={'Agent document'} type={'PFD'} size={'42994'} />
+        <Fade in>
+          <Box
+            my="1rem"
+            maxH="550px"
+            overflowY="auto"
+            scrollBehavior="smooth"
+            scrollMarginY="1"
+            scrollPaddingY="1"
+            sx={{
+              '&::-webkit-scrollbar': {
+                width: '0.25rem',
+              },
+              '&::-webkit-scrollbar-track': {
+                width: '0.25rem',
+              },
+              '&::-webkit-scrollbar-thumb': {
+                background: 'gray.300',
+                borderRadius: '30px',
+              },
+            }}
+          >
+            {DocumentSection}
+          </Box>
+        </Fade>
       </GridItem>
       <GridItem
         as={CopilotChat}
