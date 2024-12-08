@@ -1,14 +1,6 @@
 import { NextFunction, Request, Response } from 'express'
 import jwt from 'jsonwebtoken'
 
-declare global {
-  namespace Express {
-    interface Request {
-      userId?: string | jwt.JwtPayload
-    }
-  }
-}
-
 export const verifyToken = (request: Request, response: Response, next: NextFunction) => {
   const token = request.headers['authorization']
 
@@ -18,8 +10,11 @@ export const verifyToken = (request: Request, response: Response, next: NextFunc
   }
 
   try {
-    const decoded = jwt.verify(token.split(' ')[1], process.env.JWT_SECRET as string)
-    request.userId = decoded
+    const decoded: string | jwt.JwtPayload = jwt.verify(
+      token.split(' ')[1],
+      process.env.JWT_SECRET as string
+    )
+    request.userId = typeof decoded === 'string' ? decoded : decoded.id || ''
 
     next()
   } catch (error) {
