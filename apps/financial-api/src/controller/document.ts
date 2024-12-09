@@ -102,8 +102,6 @@ export const remove = async (request: Request, response: Response, next: NextFun
         }
       )
 
-      console.log(fastAPIResponse.status)
-
       if (fastAPIResponse.status === 200) {
         await document.deleteOne()
         response.json({ message: 'Delete item success' })
