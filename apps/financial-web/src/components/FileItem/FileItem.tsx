@@ -58,7 +58,7 @@ const FileItem = ({ id, name, extension, size, type, onDeleteFile, ...rest }: Fi
             <Image objectFit="contain" src={file} alt="file img" />
           </Box>
           <Flex flex={1} direction="column" justify="space-around">
-            <Heading as="h6" fontSize="xl" noOfLines={1}>
+            <Heading as="h6" fontSize="lg" noOfLines={1}>
               {name}
             </Heading>
             <Text>Extension: {extension.toUpperCase()}</Text>
