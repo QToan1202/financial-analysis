@@ -1,10 +1,9 @@
-import { useCallback, useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { SubmitHandler, useForm } from 'react-hook-form'
 import {
   Box,
   Center,
   CircularProgress,
-  Fade,
   FormControl,
   FormHelperText,
   FormLabel,
@@ -107,14 +106,32 @@ const Chat = () => {
     }
 
     return documents.map(({ _id, ...rest }) => (
-      <FileItem my="0.25rem" key={_id} id={_id} {...rest} onDeleteFile={handleDeleteDoc} />
+      <FileItem key={_id} my="0.5rem" id={_id} {...rest} onDeleteFile={handleDeleteDoc} />
     ))
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [documents, errorDocs, isGetDocuments])
+  }, [documents, errorDocs, isGetDocuments, handleDeleteDoc])
+  const documentContainerRef = useRef<HTMLDivElement>(null)
+  const stable = useRef<number>(0)
+
+  useEffect(() => {
+    window.addEventListener('resize', () => {
+      stable.current = documentContainerRef.current?.offsetHeight || 0
+    })
+
+    return () => {
+      window.removeEventListener('resize', () => {})
+    }
+  }, [])
 
   return (
-    <Grid flex={1} templateColumns={'1fr 1fr'} templateRows="minmax(0, 1fr)">
-      <GridItem p="0.5rem" borderColor="gray.300" borderRightWidth="0.5px">
+    <Grid flex={1} templateColumns={'1fr 1fr'}>
+      <GridItem
+        display={'flex'}
+        flexDirection="column"
+        p="0.5rem"
+        borderColor="gray.300"
+        borderRightWidth="0.5px"
+      >
         <FormControl
           as="form"
           display="flex"
@@ -172,30 +189,30 @@ const Chat = () => {
             Upload
           </Button>
         </FormControl>
-        <Fade in>
-          <Box
-            my="1rem"
-            maxH="550px"
-            overflowY="auto"
-            scrollBehavior="smooth"
-            scrollMarginY="1"
-            scrollPaddingY="1"
-            sx={{
-              '&::-webkit-scrollbar': {
-                width: '0.25rem',
-              },
-              '&::-webkit-scrollbar-track': {
-                width: '0.25rem',
-              },
-              '&::-webkit-scrollbar-thumb': {
-                background: 'gray.300',
-                borderRadius: '30px',
-              },
-            }}
-          >
-            {DocumentSection}
-          </Box>
-        </Fade>
+        <Box
+          my="1rem"
+          flexGrow={1}
+          ref={documentContainerRef}
+          h={stable.current}
+          overflowY="auto"
+          scrollBehavior="smooth"
+          scrollMarginY="1"
+          scrollPaddingY="1"
+          sx={{
+            '&::-webkit-scrollbar': {
+              width: '0.25rem',
+            },
+            '&::-webkit-scrollbar-track': {
+              width: '0.25rem',
+            },
+            '&::-webkit-scrollbar-thumb': {
+              background: 'gray.300',
+              borderRadius: '30px',
+            },
+          }}
+        >
+          {DocumentSection}
+        </Box>
       </GridItem>
       <GridItem
         borderColor="gray.300"

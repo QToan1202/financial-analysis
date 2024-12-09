@@ -32,7 +32,8 @@ const formatFileSize = (bytes: number | string) => {
   return `${bytes.toFixed(2)} ${units[index]}`
 }
 
-const FileItem = ({ id, name, extension, size, onDeleteFile, ...rest }: FileItemProps) => {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const FileItem = ({ id, name, extension, size, type, onDeleteFile, ...rest }: FileItemProps) => {
   const { isOpen, onOpen, onClose } = useDisclosure()
   const handleConfirmDelete = useCallback(() => {
     onDeleteFile?.(id)
