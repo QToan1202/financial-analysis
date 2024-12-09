@@ -1,5 +1,9 @@
+import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { SubmitHandler, useForm } from 'react-hook-form'
 import {
+  Box,
+  Center,
+  CircularProgress,
   FormControl,
   FormHelperText,
   FormLabel,
@@ -12,11 +16,11 @@ import { CopilotChat } from '@copilotkit/react-ui'
 import { useShallow } from 'zustand/shallow'
 
 import { Button, FileItem } from '@components'
+import { SUPPORT_FILE_EXTENSIONS } from '@constants'
+import { useDeleteDocument, useGetDocuments, useUploadDocument } from '@hooks'
+import { useAuthStore } from '@contexts'
 
 import '@copilotkit/react-ui/styles.css'
-import { SUPPORT_FILE_EXTENSIONS } from '@constants'
-import { useUploadDocument } from '@hooks'
-import { useAuthStore } from '@contexts'
 
 type UploadDocumentForm = {
   files: FileList
@@ -64,15 +68,70 @@ const Chat = () => {
       },
     })
   }
+  const { mutate: deleteDocument } = useDeleteDocument()
+  const handleDeleteDoc = useCallback((id: string) => {
+    deleteDocument(id, {
+      onSuccess: () => {
+        toast({
+          title: 'Delete document success.',
+          description: 'Your document have been deleted success',
+          status: 'success',
+        })
+      },
+      onError: (error) => {
+        toast({
+          title: 'Delete document fail.',
+          description: error.message || 'Something went wrong. Please try again.',
+          status: 'error',
+        })
+      },
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+  const { data: documents, isPending: isGetDocuments, error: errorDocs } = useGetDocuments()
+  const DocumentSection = useMemo(() => {
+    if (isGetDocuments)
+      return (
+        <Center>
+          <CircularProgress isIndeterminate color="primary.100" />
+        </Center>
+      )
+    if (errorDocs) {
+      toast({
+        title: 'Get documents fail.',
+        description: errorDocs.message || 'Something went wrong. Reload page to try again.',
+        status: 'error',
+      })
+      return
+    }
+
+    return documents.map(({ _id, ...rest }) => (
+      <FileItem key={_id} my="0.5rem" id={_id} {...rest} onDeleteFile={handleDeleteDoc} />
+    ))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [documents, errorDocs, isGetDocuments, handleDeleteDoc])
+  const documentContainerRef = useRef<HTMLDivElement>(null)
+  const stable = useRef<number>(0)
+
+  useEffect(() => {
+    window.addEventListener('resize', () => {
+      stable.current = documentContainerRef.current?.offsetHeight || 0
+    })
+
+    return () => {
+      window.removeEventListener('resize', () => {})
+    }
+  }, [])
 
   return (
-    <Grid
-      templateColumns={'2fr 1fr'}
-      templateRows="minmax(0, 1fr)"
-      gap="0.25rem"
-      height="calc(90vh - 316px)"
-    >
-      <GridItem p="0.5rem">
+    <Grid flex={1} templateColumns={'1fr 1fr'}>
+      <GridItem
+        display={'flex'}
+        flexDirection="column"
+        p="0.5rem"
+        borderColor="gray.300"
+        borderRightWidth="0.5px"
+      >
         <FormControl
           as="form"
           display="flex"
@@ -130,11 +189,37 @@ const Chat = () => {
             Upload
           </Button>
         </FormControl>
-        <FileItem id={'1'} name={'Agent document'} type={'PFD'} size={'42994'} />
+        <Box
+          my="1rem"
+          flexGrow={1}
+          ref={documentContainerRef}
+          h={stable.current}
+          overflowY="auto"
+          scrollBehavior="smooth"
+          scrollMarginY="1"
+          scrollPaddingY="1"
+          sx={{
+            '&::-webkit-scrollbar': {
+              width: '0.25rem',
+            },
+            '&::-webkit-scrollbar-track': {
+              width: '0.25rem',
+            },
+            '&::-webkit-scrollbar-thumb': {
+              background: 'gray.300',
+              borderRadius: '30px',
+            },
+          }}
+        >
+          {DocumentSection}
+        </Box>
       </GridItem>
       <GridItem
+        borderColor="gray.300"
+        borderLeftWidth="0.5px"
         as={CopilotChat}
         height="100%"
+        p="0.5rem"
         instructions={
           'You are assisting the user as best as you can. Answer in the best way possible given the data you have.'
         }
@@ -142,7 +227,7 @@ const Chat = () => {
           title: 'Your Assistant',
           initial: 'Hi! 👋 How can I assist you today?',
         }}
-      ></GridItem>
+      />
     </Grid>
   )
 }

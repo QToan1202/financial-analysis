@@ -46,6 +46,7 @@ requestForBE.interceptors.response.use(
     } catch (refreshError) {
       // Handle logout when available token expired
       clearCredential()
+      window.location.replace('/log-in')
       Promise.reject(refreshError)
     }
   }

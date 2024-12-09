@@ -1,12 +1,14 @@
-import { memo } from 'react'
+import { forwardRef, memo } from 'react'
 import { Button, type ButtonProps } from '@chakra-ui/react'
 
 export type CustomButtonProps = ButtonProps
 
-const CustomButton = ({ children, ...rest }: CustomButtonProps) => (
-  <Button size={['sm', 'md', 'lg', 'xl']} {...rest}>
-    {children}
-  </Button>
+const CustomButton = forwardRef<HTMLButtonElement, CustomButtonProps>(
+  ({ children, ...rest }, btnRef) => (
+    <Button size={['sm', 'md', 'lg', 'xl']} {...rest} ref={btnRef}>
+      {children}
+    </Button>
+  )
 )
 
 export default memo(CustomButton)

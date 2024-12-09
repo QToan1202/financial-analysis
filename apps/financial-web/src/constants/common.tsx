@@ -24,3 +24,18 @@ export const NAV_ITEM = [
     icon: <Letter />,
   },
 ]
+
+export const DRAWER_ITEM = [
+  {
+    title: 'Home',
+    href: '/',
+  },
+  {
+    title: 'News',
+    href: '/news',
+  },
+  {
+    title: 'Chat',
+    href: '/chat',
+  },
+]

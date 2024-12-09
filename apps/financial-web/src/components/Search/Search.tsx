@@ -1,4 +1,4 @@
-import { ChangeEvent, useMemo, useState } from 'react'
+import { ChangeEvent, forwardRef, useMemo, useState } from 'react'
 import {
   IconButton,
   Input,
@@ -15,7 +15,7 @@ export type SearchProps = InputProps & {
 }
 
 const DEFAULT_INPUT_VALUE: string = ''
-const Search = ({ onChangeText, ...rest }: SearchProps) => {
+const Search = forwardRef<HTMLInputElement, SearchProps>(({ onChangeText, ...rest }, ref) => {
   const styles = useStyleConfig('Search')
   const [value, setValue] = useState<string>(DEFAULT_INPUT_VALUE)
   const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -51,15 +51,16 @@ const Search = ({ onChangeText, ...rest }: SearchProps) => {
       <Input
         variant="unstyled"
         sx={styles}
-        type="text"
+        type="search"
         placeholder="Company or stock symbol..."
         {...rest}
+        ref={ref}
         value={value}
         onChange={handleChange}
       />
       {value && RightIcon}
     </InputGroup>
   )
-}
+})
 
 export default Search

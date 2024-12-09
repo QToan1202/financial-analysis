@@ -1,10 +1,12 @@
 import { createBrowserRouter, redirect, RouterProvider } from 'react-router-dom'
 import { GoogleOAuthProvider } from '@react-oauth/google'
 
-import { Root } from '@layouts'
+import { ChatLayout, Root } from '@layouts'
 import { ChatPage, DetailPage, HomePage, NewsPage, SignInPage, SignUpPage } from '@pages'
 import { useAuthStore } from '@contexts'
 import { CopilotKit } from '@copilotkit/react-core'
+
+import './global.css'
 
 const authLoader = () => {
   const isAuthenticated = useAuthStore.getState().isAuthenticated
@@ -50,8 +52,15 @@ const router = createBrowserRouter([
         path: 'detail/:ticket',
         element: <DetailPage />,
       },
+    ],
+  },
+  {
+    path: '/chat',
+    loader: protectedLoader,
+    element: <ChatLayout />,
+    children: [
       {
-        path: 'chat',
+        index: true,
         element: <ChatPage />,
       },
     ],

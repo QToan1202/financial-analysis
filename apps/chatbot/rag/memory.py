@@ -119,7 +119,6 @@ tools = [save_recall_memory, search_recall_memories, search]
 class State(MessagesState):
     # add memories that will be retrieved based on the conversation context
     recall_memories: List[str]
-    rag_retrieve: str
 
 
 # Define the prompt template for the agent
@@ -184,7 +183,11 @@ bound = prompt | model_with_tools
 tokenizer = tiktoken.encoding_for_model("gpt-4o")
 
 
-async def agent(state: State, config: RunnableConfig) -> State:
+class AgentState(State):
+    agent_message: str
+
+
+async def agent(state: State, config: RunnableConfig) -> AgentState:
     """Process the current state and generate a response using the LLM.
 
     Args:
@@ -207,6 +210,9 @@ async def agent(state: State, config: RunnableConfig) -> State:
         },
         config=modified_config
     )
+    if prediction.content:
+        return {"agent_message": prediction.content, "messages": [prediction]}
+
     return {
         "messages": [prediction],
     }
@@ -232,7 +238,11 @@ def load_memories(state: State, config: RunnableConfig) -> State:
     }
 
 
-def retrieve_with_adaptive_rag(state: State, config: RunnableConfig) -> State:
+class RetrievalState(State):
+    rag_retrieve: str
+
+
+def retrieve_with_adaptive_rag(state: State, config: RunnableConfig) -> RetrievalState:
     """Retrieval in the store for separate answer along with Agent
 
     Args:
@@ -254,10 +264,14 @@ def retrieve_with_adaptive_rag(state: State, config: RunnableConfig) -> State:
     except GraphRecursionError:
         print("Recursion Error")
 
-    return {"rag_retrieve": final_response}
+    return {"rag_retrieve": final_response or "I don't know"}
 
 
-def rating_answer(state: State, config: RunnableConfig) -> State:
+class RatingState(RetrievalState, AgentState):
+    pass
+
+
+def rating_answer(state: RatingState, config: RunnableConfig) -> State:
     """Compare the answer from Agent with the answer from the retrieve.
     And give back to user the best answer
 
@@ -266,11 +280,11 @@ def rating_answer(state: State, config: RunnableConfig) -> State:
         config (RunnableConfig): The runtime configuration for the agent.
 
     Returns:
-        State: The updated state with loaded memories.
+        State: The updated state with final answer.
     """
     messages = state["messages"]
-    answer_by_agent = state["messages"][-1]
-    answer_by_retrieval = state["rag_retrieve"]
+    answer_by_agent = state.get("agent_message", "")
+    answer_by_retrieval = state.get("rag_retrieve", "")
 
     template = """
       You are an evaluator tasked with selecting and delivering 
@@ -295,12 +309,13 @@ def rating_answer(state: State, config: RunnableConfig) -> State:
 
     prompt = PromptTemplate.from_template(template)
     reinforcement_chain = prompt | chat_model
-    choice = reinforcement_chain.invoke(
-        {"agent_answer": answer_by_agent.content, "retriever_answer": answer_by_retrieval})
-    replace_last_message = AIMessage(
-        content=choice.content, id=answer_by_agent.id)
 
-    return {"messages": add_messages(messages, replace_last_message)}
+    if answer_by_agent and answer_by_retrieval:
+        choice = reinforcement_chain.invoke(
+            {"agent_answer": answer_by_agent, "retriever_answer": answer_by_retrieval})
+        return {"messages": [choice]}
+
+    return {"messages": messages}
 
 
 def delete_messages(state: State) -> State:
@@ -320,7 +335,7 @@ def delete_messages(state: State) -> State:
                                   # Most chat models expect that chat history ends with either:
                                   # (1) a HumanMessage or
                                   # (2) a ToolMessage
-                                  end_on=("human", "tool"),
+                                  end_on=("human"),
                                   # Usually, we want to keep the SystemMessage
                                   # if it's present in the original history.
                                   # The SystemMessage has special instructions for the model.

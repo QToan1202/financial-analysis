@@ -81,9 +81,23 @@ async def create_upload_file(user_id: Annotated[str, Form()], file: UploadFile =
         service = FileService(content=contents, file_extension=ext)
         documents = service.handle_split_file_content(metadata={
             "filename": file.filename, "size": file.size, "type": file.content_type, "user_id": user_id})
-        app.state.vector_store.add_documents(documents)
+        ids = app.state.vector_store.add_documents(documents)
 
-        return {"filename": file.filename, "message": "Upload file success"}
+        return {"filename": file.filename, "file_ids": ids, "message": "Upload file success"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+class Item(BaseModel):
+    ids: List[str]
+
+
+@app.post("/delete-document")
+async def delete_document(body: Item):
+    try:
+        app.state.vector_store.delete(ids=body.ids)
+
+        return {"message": "Delete document success"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

@@ -1,9 +1,11 @@
 import { createColumnHelper } from '@tanstack/react-table'
-import { chakra, Link } from '@chakra-ui/react'
+import { chakra } from '@chakra-ui/react'
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
 import updateLocale from 'dayjs/plugin/updateLocale'
+
 import type { Gainer, News } from '@types'
+import { Link } from '@components'
 
 dayjs.extend(relativeTime)
 dayjs.extend(updateLocale)
@@ -25,7 +27,11 @@ dayjs.updateLocale('en', {
 const columnHelper = createColumnHelper<Gainer>()
 export const defaultColumn = [
   columnHelper.accessor('symbol', {
-    cell: (info) => <chakra.span color="text.link">{info.getValue()}</chakra.span>,
+    cell: (info) => (
+      <Link to={`/detail/${info.getValue()}`} color="text.link">
+        {info.getValue()}
+      </Link>
+    ),
     header: 'Symbol',
   }),
   columnHelper.accessor('name', {
@@ -62,7 +68,7 @@ export const newsColumn = [
           color="text.link"
           isExternal
           isTruncated
-          href={info.row.original.article_url}
+          to={info.row.original.article_url}
         >
           {info.getValue()}
         </Link>

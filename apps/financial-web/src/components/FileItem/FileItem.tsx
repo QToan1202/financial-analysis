@@ -1,16 +1,24 @@
 import { useCallback } from 'react'
-import { Box, Flex, Heading, IconButton, Image, Text } from '@chakra-ui/react'
+import {
+  Box,
+  Flex,
+  FlexProps,
+  Heading,
+  IconButton,
+  Image,
+  Text,
+  useDisclosure,
+} from '@chakra-ui/react'
 import { CloseIcon } from '@chakra-ui/icons'
 
 import { file } from '@assets'
+import type { Document } from '@types'
+import { AlertDialog } from '@components/Alert'
 
-export type FileItemProps = {
+export type FileItemProps = FlexProps & {
   id: string
-  name: string
-  type: string
-  size: string
   onDeleteFile?: (id: string) => void
-}
+} & Omit<Document, '_id'>
 const formatFileSize = (bytes: number | string) => {
   if (typeof bytes === 'string') bytes = Number(bytes)
   const units = ['B', 'KB', 'MB', 'GB', 'TB']
@@ -24,40 +32,67 @@ const formatFileSize = (bytes: number | string) => {
   return `${bytes.toFixed(2)} ${units[index]}`
 }
 
-const FileItem = ({ id, name, type, size, onDeleteFile }: FileItemProps) => {
-  const handleClick = useCallback(() => {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const FileItem = ({ id, name, extension, size, type, onDeleteFile, ...rest }: FileItemProps) => {
+  const { isOpen, onOpen, onClose } = useDisclosure()
+  const handleConfirmDelete = useCallback(() => {
     onDeleteFile?.(id)
   }, [id, onDeleteFile])
 
   return (
-    <Flex
-      p="0.5rem"
-      justify="space-between"
-      align="flex-start"
-      bgColor="gray.50"
-      borderRadius="10px"
-      maxH="100px"
-      overflow="hidden"
-    >
-      <Flex gap="0.5rem">
-        <Box boxSize="calc(100px - 0.5rem * 2)" p="0.25rem" borderRadius="2px">
-          <Image objectFit="cover" src={file} alt="file img" />
-        </Box>
-        <Flex direction="column" justify="space-around">
-          <Heading as="h6" fontSize="xl" noOfLines={1}>
-            {name}
-          </Heading>
-          <Text>Extension: {type}</Text>
-          <Text>Size: {formatFileSize(size)}</Text>
+    <>
+      <Flex
+        p="0.5rem"
+        justify="space-between"
+        align="flex-start"
+        bgColor="gray.200"
+        borderRadius="10px"
+        maxH="100px"
+        overflow="hidden"
+        borderWidth={0.5}
+        borderColor="gray.100"
+        {...rest}
+      >
+        <Flex flex={1} gap="0.5rem">
+          <Box boxSize="5rem" p="0.25rem" borderRadius="2px">
+            <Image objectFit="contain" src={file} alt="file img" />
+          </Box>
+          <Flex flex={1} direction="column" justify="space-around">
+            <Heading as="h6" fontSize="lg" noOfLines={1}>
+              {name}
+            </Heading>
+            <Text>Extension: {extension.toUpperCase()}</Text>
+            <Text>Size: {formatFileSize(size)}</Text>
+          </Flex>
         </Flex>
+        <IconButton
+          variant="ghost"
+          aria-label="Delete file"
+          onClick={onOpen}
+          icon={<CloseIcon />}
+        />
       </Flex>
-      <IconButton
-        variant="ghost"
-        aria-label="Delete file"
-        onClick={handleClick}
-        icon={<CloseIcon />}
-      />
-    </Flex>
+      <AlertDialog
+        header="Delete Document"
+        isOpen={isOpen}
+        onClose={onClose}
+        onConfirm={handleConfirmDelete}
+      >
+        <Text>
+          Are you sure you want to remove this document (
+          <Text
+            as="span"
+            fontWeight="bold"
+            fontStyle="italic"
+            fontSize="0.875rem"
+            letterSpacing={0.2}
+          >
+            {name.split('.').shift()}
+          </Text>
+          )? After deleted this document can't be retrieval by our chat model.
+        </Text>
+      </AlertDialog>
+    </>
   )
 }
 

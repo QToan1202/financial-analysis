@@ -33,7 +33,7 @@ const DetailPage = () => {
     })
 
   return (
-    <Center>
+    <Center flex={1}>
       {isPending ? (
         <CircularProgress isIndeterminate color="primary.100" />
       ) : (
@@ -52,7 +52,10 @@ const DetailPage = () => {
               fontSize="1.5rem"
               fontWeight="semibold"
               color={stockDetail.changes > 0 ? 'green.50' : 'red.50'}
-            >{` ${stockDetail.changes > 0 ? '+' : ''}${stockDetail.changes.toFixed(2)} (${((stockDetail.changes / stockDetail.price) * 100).toFixed(2)}%)`}</Text>
+            >{` ${stockDetail.changes > 0 ? '+' : ''}${stockDetail.changes.toFixed(2)} (${(
+              (stockDetail.changes / stockDetail.price) *
+              100
+            ).toFixed(2)}%)`}</Text>
           </Text>
 
           <StockPrice isIncrease={stockDetail.changes > 0} />

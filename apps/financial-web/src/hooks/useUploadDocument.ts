@@ -1,7 +1,8 @@
-import { UseMutationResult, useMutation } from '@tanstack/react-query'
+import { UseMutationResult, useMutation, useQueryClient } from '@tanstack/react-query'
 import { AxiosResponse } from 'axios'
 
 import { requestForBE } from '@services'
+import { documentKeys } from '@factories'
 
 type DocumentResponse = {
   filename: string
@@ -19,6 +20,8 @@ export const useUploadDocument = (): UseMutationResult<
   DocumentRequest,
   unknown
 > => {
+  const queryClient = useQueryClient()
+
   return useMutation<AxiosResponse<DocumentResponse>, Error, DocumentRequest, unknown>({
     mutationFn: ({ files, userId }: DocumentRequest): Promise<AxiosResponse<DocumentResponse>> => {
       const file = files[0]
@@ -33,6 +36,9 @@ export const useUploadDocument = (): UseMutationResult<
           'Content-Type': 'multipart/form-data',
         },
       })
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: documentKeys.lists(), exact: true })
     },
   })
 }

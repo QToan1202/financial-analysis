@@ -10,7 +10,21 @@ const useGetNews = (limit: number = 10): UseQueryResult<News[], Error> => {
   return useQuery({
     queryKey: polygonKeys.list('news'),
     queryFn: () => requestPo.get('/v2/reference/news', { params: { limit } }),
-    select: useCallback((data: AxiosResponse<TickerNewsResponse>) => data.data.results, []),
+    select: useCallback(
+      (data: AxiosResponse<TickerNewsResponse>) =>
+        data.data.results.map(({ title, ...rest }) => {
+          const convertTitle =
+            title.length >= 120
+              ? title
+                  .slice(0, 120)
+                  .trimEnd()
+                  .padEnd(120 + 3, '.')
+              : title
+
+          return { title: convertTitle, ...rest }
+        }),
+      []
+    ),
   })
 }
 
