@@ -40,7 +40,7 @@ connection = os.environ.get("PGVT_CONNECTION")
 collection_name = "memories"
 
 embeddings = NVIDIAEmbeddings(
-    model="nvidia/llama-3.2-nv-embedqa-1b-v1",
+    model="nvidia/nv-embedqa-mistral-7b-v2",
     truncate="END")
 
 recall_vector_store = vector_store = PGVector(
