@@ -1,5 +1,5 @@
 from langgraph.errors import GraphRecursionError
-from .adaptive_rag import app as adaptive_retrieve
+from .agentic_rag import app as agentic_retrieve
 import sys
 import asyncio
 
@@ -15,7 +15,7 @@ from langchain_nvidia_ai_endpoints import NVIDIAEmbeddings
 from langchain_postgres.vectorstores import PGVector
 from langchain_postgres import PGVector
 import os
-from typing import List, Literal
+from typing import List, Literal, Any
 from dotenv import load_dotenv, find_dotenv
 
 import tiktoken
@@ -106,19 +106,16 @@ def search_recall_memories(query: str, config: RunnableConfig) -> str:
     documents = recall_vector_store.as_retriever(search_type="mmr",
                                                  search_kwargs=search_kwargs).invoke(query)
 
-    for doc in documents:
-        print(f"* {doc.page_content} [{doc.metadata}]")
-
     return "\n".join(document.page_content for document in documents)
 
 
-search = TavilySearchResults(max_results=3)
-tools = [save_recall_memory, search_recall_memories, search]
+tools = [save_recall_memory, search_recall_memories]
 
 
 class State(MessagesState):
     # add memories that will be retrieved based on the conversation context
     recall_memories: List[str]
+    logs: Any
 
 
 # Define the prompt template for the agent
@@ -183,11 +180,7 @@ bound = prompt | model_with_tools
 tokenizer = tiktoken.encoding_for_model("gpt-4o")
 
 
-class AgentState(State):
-    agent_message: str
-
-
-async def agent(state: State, config: RunnableConfig) -> AgentState:
+async def agent(state: State, config: RunnableConfig) -> State:
     """Process the current state and generate a response using the LLM.
 
     Args:
@@ -201,17 +194,12 @@ async def agent(state: State, config: RunnableConfig) -> AgentState:
     recall_str = (
         "<recall_memory>\n" + memories + "\n</recall_memory>"
     )
-    modified_config = copilotkit_customize_config(
-        config, emit_messages=False)
     prediction = await bound.ainvoke(
         {
             "messages": state["messages"],
             "recall_memories": recall_str,
-        },
-        config=modified_config
+        }
     )
-    if prediction.content:
-        return {"agent_message": prediction.content, "messages": [prediction]}
 
     return {
         "messages": [prediction],
@@ -230,7 +218,7 @@ def load_memories(state: State, config: RunnableConfig) -> State:
     """
     msg = [state["messages"][-1]]
     convo_str = get_buffer_string(msg)
-    convo_str = tokenizer.decode(tokenizer.encode(convo_str)[:2048])
+    convo_str = tokenizer.decode(tokenizer.encode(convo_str)[:4096])
     recall_memories = search_recall_memories.invoke(convo_str, config)
 
     return {
@@ -238,40 +226,31 @@ def load_memories(state: State, config: RunnableConfig) -> State:
     }
 
 
-class RetrievalState(State):
-    rag_retrieve: str
+# def retrieve_with_agentic_rag(state: State, config: RunnableConfig) -> State:
+#     """Retrieval in the store for separate answer along with Agent
+
+#     Args:
+#         state (schemas.State): The current state of the conversation.
+#         config (RunnableConfig): The runtime configuration for the agent.
+
+#     Returns:
+#         State: The updated state with retrieval from vector store.
+#     """
+#     messages = state["messages"]
+#     config_with_recursive = config
+#     modified_config = copilotkit_customize_config(
+#         config_with_recursive, emit_messages=False)
+#     try:
+#         answer = agentic_retrieve.invoke(
+#             {"messages": [messages]}, config=modified_config)
+#         return {"messages": [answer]}
+#     except GraphRecursionError:
+#         print("Recursion Error")
+
+#     return {"rag_retrieve": [messages]}
 
 
-def retrieve_with_adaptive_rag(state: State, config: RunnableConfig) -> RetrievalState:
-    """Retrieval in the store for separate answer along with Agent
-
-    Args:
-        state (schemas.State): The current state of the conversation.
-        config (RunnableConfig): The runtime configuration for the agent.
-
-    Returns:
-        State: The updated state with retrieval from vector store.
-    """
-    query: HumanMessage = state["messages"][-1]
-    config_with_recursive = config | {"recursion_limit": 7 + 5}
-    modified_config = copilotkit_customize_config(
-        config_with_recursive, emit_messages=False)
-    final_response = ""
-    try:
-        answer = adaptive_retrieve.invoke(
-            {"question": query.content}, config=modified_config)
-        final_response = answer.get("generation", "I don't know")
-    except GraphRecursionError:
-        print("Recursion Error")
-
-    return {"rag_retrieve": final_response or "I don't know"}
-
-
-class RatingState(RetrievalState, AgentState):
-    pass
-
-
-def rating_answer(state: RatingState, config: RunnableConfig) -> State:
+def rating_answer(state: State, config: RunnableConfig) -> State:
     """Compare the answer from Agent with the answer from the retrieve.
     And give back to user the best answer
 
@@ -346,52 +325,108 @@ def delete_messages(state: State) -> State:
     return {"messages": [RemoveMessage(id=msg.id) for msg in messages if msg.id not in keep_msg_ids]}
 
 
-def route_tools(state: State) -> Literal["tools", "rating_answer"]:
+def route_message(state: State, config: RunnableConfig) -> Literal["RAG", "Chatbot"]:
+    class RouteQuery(BaseModel):
+        """
+        A model representing a routing decision for user queries. 
+        Determines whether a query is processed via RAG (Retrieval-Augmented Generation) 
+        or handled as a regular chatbot conversation.
+        """
+
+        route: Literal["RAG", "Chatbot"] = Field(
+            ..., description="The determined route for processing: 'RAG' or 'Chatbot'.")
+
+    llm = ChatNVIDIA(
+        model="meta/llama-3.1-405b-instruct",
+        temperature=0.0,
+    )
+    structured_llm_router = llm.with_structured_output(RouteQuery)
+    system = """
+    You are a smart router determining whether to process a user's input using the RAG retrieval system or 
+    handle it as a conversational response from the chatbot. Follow these steps:
+
+      1. Use the RAG process if the input. 
+        * Requires detailed factual retrieval from a specific knowledge base or document.
+        * Mentions topics not covered by the chatbot's general knowledge or external tools
+
+        Examples include:
+          * 'What is the financial projection for Q3 2024?'
+          * 'Summarize the company's annual report.'
+          * 'Retrieve details about document X.'
+
+      2. Handle it as a chatbot interaction if the input. 
+        * Seeks up-to-date information such as weather, current events, or trending topics (use the web search tool as needed).
+        * Relates to user-specific references that can be resolved using long-term memory.
+        * Involves casual conversation, creative tasks, or opinion-based queries
+
+        Examples include:
+          * 'What's the weather like in DaNang today?'
+          * 'Tell me a joke.'
+          * 'Hi'
+
+    Output:
+      * If RAG is needed, respond with: "RAG"
+      * If it's a regular conversation, respond directly as a "Chatbot"
+    """
+
+    route_prompt = ChatPromptTemplate.from_messages(
+        [("system", system), ("human", "{question}")])
+
+    route_chain = route_prompt | structured_llm_router
+    last_message = state["messages"][-1]
+    modified_config = copilotkit_customize_config(
+        config, emit_messages=False)
+    result = route_chain.invoke(last_message, config=modified_config)
+
+    return result.route
+
+
+def route_tools(state: State) -> Literal["tools", "delete_messages"]:
     """Determine whether to use tools or end the conversation based on the last message.
 
     Args:
         state (schemas.State): The current state of the conversation.
 
     Returns:
-        Literal["tools", "rating_answer"]: The next step in the graph.
+        str: The next step in the graph.
     """
 
     msg = state["messages"][-1]
     if msg.tool_calls:
         return "tools"
 
-    return "rating_answer"
+    return "delete_messages"
 
 # Create the graph and add nodes
 
 
 builder = StateGraph(State)
-# builder.add_node(load_memories)
-builder.add_node(agent)
-builder.add_node("retrieve", retrieve_with_adaptive_rag)
+builder.add_node(load_memories)
+builder.add_node("memory_agent", agent)
+builder.add_node("retrieve", agentic_retrieve)
 builder.add_node(delete_messages)
-builder.add_node(rating_answer)
 builder.add_node("tools", ToolNode(tools))
 
 # Add edges to the graph
-# builder.add_edge(START, "load_memories")
-builder.add_edge(START, "agent")
-builder.add_edge(START, "retrieve")
-builder.add_edge("retrieve", "rating_answer")
 builder.add_conditional_edges(
-    "agent", route_tools, ["tools", "rating_answer"])
-builder.add_edge("tools", "agent")
-builder.add_edge("rating_answer", "delete_messages")
+    START, route_message, {"RAG": "retrieve", "Chatbot": "load_memories"})
+builder.add_edge("retrieve", "delete_messages")
+builder.add_edge("load_memories", "memory_agent")
+builder.add_conditional_edges(
+    "memory_agent", route_tools, ["tools", "delete_messages"])
+builder.add_edge("tools", "memory_agent")
 builder.add_edge("delete_messages", END)
 
 
 async def pretty_print_stream_chunk(msg, metadata):
-    if (
-        msg.content
-        and not isinstance(msg, HumanMessage)
-        and metadata["langgraph_node"] == "rating_answer"
-    ):
+    from langchain_core.messages import AIMessageChunk
+    if isinstance(msg, AIMessageChunk):
         print(msg.content, end="", flush=True)
+        if msg.response_metadata.get("finish_reason", "") == "stop":
+            print("\n")
+    else:
+        print(msg.content)
+        print("\n")
 
 
 async def main():
