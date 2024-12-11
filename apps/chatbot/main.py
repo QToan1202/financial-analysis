@@ -45,6 +45,7 @@ async def lifespan(app: FastAPI):
         use_jsonb=True,
     )
     async with AsyncPostgresSaver.from_conn_string(DB_URI) as checkpointer:
+        checkpointer.setup()
         graph = state_graph.compile(checkpointer=checkpointer)
         app.state.sdk = CopilotKitSDKAsync(agents=[
             LangGraphAgentAsync(
