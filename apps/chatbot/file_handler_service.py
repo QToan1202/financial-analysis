@@ -17,7 +17,7 @@ class FileService:
         doc = [Document(page_content=page_content,
                         metadata=metadata | {"id": self._id_for_doc})]
         text_splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
-            chunk_size=300, chunk_overlap=10)
+            chunk_size=400, chunk_overlap=10, separators=["\n\n", "\n", ".", " "], keep_separator=False,)
         splits = text_splitter.split_documents(doc)
 
         return splits
