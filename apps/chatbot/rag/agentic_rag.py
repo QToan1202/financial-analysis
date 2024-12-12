@@ -1,20 +1,20 @@
-
 from langchain_community.tools.tavily_search import TavilySearchResults
 from langgraph.prebuilt import tools_condition
 from langgraph.prebuilt import ToolNode
 from langgraph.graph import START, END, StateGraph
+from typing import Literal
+from langchain.retrievers.multi_query import MultiQueryRetriever
+from langchain_core.output_parsers import BaseOutputParser
+from copilotkit.langchain import copilotkit_customize_config
+from langchain_core.prompts import PromptTemplate, ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 import numpy as np
 from langchain_core.runnables import RunnableConfig
 from langchain.schema import Document
 from langgraph.graph import MessagesState
-from typing import List, Any
-from langchain_core.prompts import ChatPromptTemplate
-from typing import Literal
-from pydantic import BaseModel, Field
+from typing import List
 from langchain_postgres.vectorstores import PGVector
 from langchain_nvidia_ai_endpoints import ChatNVIDIA, NVIDIAEmbeddings, NVIDIARerank
-from copilotkit.langchain import copilotkit_customize_config, copilotkit_emit_state
 import os
 from dotenv import load_dotenv, find_dotenv
 
@@ -57,16 +57,14 @@ vector_store = PGVector(
 
 
 class State(MessagesState):
-    question: str
     generation: str
     documents: List[Document]
     retry_count: int
-    logs: Any
 
 # Search
 
 
-web_search_tool = TavilySearchResults(name="web-search-tool", k=3)
+web_search_tool = TavilySearchResults(k=3)
 
 # Utils def
 
@@ -97,8 +95,17 @@ def sigmoid(x: float):
 
 # Define Graph Nodes
 
+# Output parser will split the LLM result into a list of queries
 
-async def retrieve(state: State, config: RunnableConfig) -> State:
+class LineListOutputParser(BaseOutputParser[List[str]]):
+    """Output parser for a list of lines."""
+
+    def parse(self, text: str) -> List[str]:
+        lines = text.strip().split("\n")
+        return list(filter(None, lines))  # Remove empty lines
+
+
+def retrieve(state: State, config: RunnableConfig) -> State:
     """
     Retrieve documents
 
@@ -111,30 +118,64 @@ async def retrieve(state: State, config: RunnableConfig) -> State:
     """
     retry_count = state.get("retry_count", -1)
     last_message = state["messages"][-1]
-    logs: dict = state.get("logs", {})
 
-    logs = logs | {
-        "message": f"Retrieving documents",
-        "done": False
-    }
+    output_parser = LineListOutputParser()
+    prompt = """Analyze the following query and provide only the specific topics 
+    or keywords that should be retrieved from the vector store. 
+    Focus solely on identifying the most relevant retrieval 
+    targets without any explanation or commentary.
 
-    await copilotkit_emit_state(config, state)
+    Query: {question}
+
+    Respond only with the optimal retrieval topics or keywords.
+    """
+    refinement_prompt = PromptTemplate.from_template(prompt)
+    refinement_chain = refinement_prompt | llm | output_parser
 
     if retry_count >= RETRY_RETRIEVAL_COUNT:
-        return {"question": last_message.content, "retry_count": retry_count + 1, "logs": logs}
+        return {"retry_count": retry_count + 1}
 
     user_id = get_user_id(config)
     filter = {"user_id": {"$eq": user_id}}
     search_kwargs = {
         "k": 3,
         "fetch_k": 5,
-        "filter": filter
+        # "filter": filter
     }
     retriever = vector_store.as_retriever(search_type="mmr",
                                           search_kwargs=search_kwargs)
-    documents = retriever.invoke(last_message.content)
+    multi_retriever = MultiQueryRetriever(
+        retriever=retriever, llm_chain=refinement_chain)
+    modified_config = copilotkit_customize_config(config, emit_messages=False)
+    documents = multi_retriever.invoke(
+        last_message.content, config=modified_config)
 
-    return {"documents": documents, "retry_count": retry_count + 1, "question": last_message.content, "logs": logs}
+    return {"documents": documents, "retry_count": retry_count + 1}
+
+
+def grade_documents(state: State) -> State:
+    """
+    Ranking documents
+
+    Args:
+        state (dict): The current graph state
+
+    Returns:
+        state: A list re-ranking documents related to user's query
+    """
+    messages = state["messages"]
+    question = messages[-1].content
+    document = state["documents"]
+
+    # Using ranking model to filter irrelevant documents
+    ranking_docs = ranking.compress_documents(
+        query=question,
+        documents=document,
+    )
+    ranking_docs = [doc for doc in ranking_docs if sigmoid(
+        doc.metadata.get("relevance_score", 0.0)) >= DOCUMENT_RELEVANT_THRESHOLD]
+
+    return {"documents": ranking_docs}
 
 
 tools = [web_search_tool]
@@ -151,7 +192,6 @@ def agent(state: State) -> State:
     Returns:
         dict: The updated state with the agent response appended to messages
     """
-    messages = state["messages"]
     context = state.get("generation", "No context provided")
     prompt_template = ChatPromptTemplate.from_messages([
         ("system", """You are given a Context that provides background information or details related to
@@ -164,7 +204,8 @@ def agent(state: State) -> State:
     ])
     model = chat_model.bind_tools(tools)
     chain = prompt_template | model
-    response = chain.invoke({"context": context, "messages": messages})
+    response = chain.invoke(
+        {"context": context, "messages": state["messages"]})
 
     return {"messages": [response]}
 
@@ -179,7 +220,7 @@ def rewrite(state: State, config: RunnableConfig) -> State:
     Returns:
         state (dict): Updates question key with a re-phrased question
     """
-    question = state["question"]
+    question = state["messages"][-1].content
     human_msg = [
         ("human", """You a question re-writer that converts an input question to a better version that is optimized,
         for vectorstore retrieval. Look at the input and try to reason about the underlying semantic intent / meaning.
@@ -190,14 +231,12 @@ def rewrite(state: State, config: RunnableConfig) -> State:
         CAVEAT: Only give back the final question
         """)
     ]
-    prompt = ChatPromptTemplate.from_messages(
-        human_msg) | chat_model | StrOutputParser()
-    modified_config = copilotkit_customize_config(
-        config, emit_messages=False)
+    prompt = ChatPromptTemplate.from_messages(human_msg) | chat_model
+    modified_config = copilotkit_customize_config(config, emit_messages=False)
     improved_question = prompt.invoke(
         {"question": question}, config=modified_config)
 
-    return {"question": improved_question}
+    return {"messages": [improved_question]}
 
 
 def generate(state: State, config: RunnableConfig) -> State:
@@ -211,7 +250,7 @@ def generate(state: State, config: RunnableConfig) -> State:
     Returns:
         state (dict): New key added to state, generation, that contains LLM generation
     """
-    question = state["question"]
+    question = state["messages"][-1].content
     docs = state["documents"]
 
     rag_prompt = """You are an assistant for question-answering tasks. 
@@ -224,17 +263,17 @@ def generate(state: State, config: RunnableConfig) -> State:
               """
     generate_prompt = ChatPromptTemplate.from_template(rag_prompt)
     rag_chain = generate_prompt | chat_model | StrOutputParser()
-    modified_config = copilotkit_customize_config(
-        config, emit_messages=False)
-    generation = rag_chain.invoke(
-        {"context": format_docs(docs), "question": question}, config=modified_config)
+    modified_config = copilotkit_customize_config(config, emit_messages=False)
+    generation = rag_chain.invoke({"context": format_docs(
+        docs), "question":  question}, config=modified_config)
 
     return {"generation": generation}
 
 
 # Edges
 
-def grade_documents(state: State) -> Literal["transform", "unavailable", "available"]:
+
+def decide_generate(state: State) -> Literal["transform", "unavailable", "available"]:
     """
     Determines whether the retrieved documents are relevant to the question.
 
@@ -244,27 +283,12 @@ def grade_documents(state: State) -> Literal["transform", "unavailable", "availa
     Returns:
         str: A decision for whether the documents are relevant or not
     """
-    messages = state["messages"]
-    question = messages[0].content
     document = state["documents"]
     retry_count = state["retry_count"]
 
-    # Using ranking model to filter irrelevant documents
-    ranking_docs = ranking.compress_documents(
-        query=question,
-        documents=document,
-    )
-    ranking_docs = [doc for doc in ranking_docs if sigmoid(
-        doc.metadata.get("relevance_score", 0.0)) >= DOCUMENT_RELEVANT_THRESHOLD]
-
-    #  if not ranking_docs:
-    #     return "transform"
-    # elif retry_count < RETRY_RETRIEVAL_COUNT:
-    #     return "unavailable"
-
     if retry_count > RETRY_RETRIEVAL_COUNT:
         return "unavailable"
-    elif not ranking_docs:
+    elif not document:
         return "transform"
     else:
         return "available"
@@ -274,6 +298,7 @@ workflow = StateGraph(State)
 
 # Define the nodes
 workflow.add_node("retrieve", retrieve)
+workflow.add_node("grade_documents", grade_documents)
 workflow.add_node("generate", generate)
 workflow.add_node("rewrite", rewrite)
 workflow.add_node("research-agent", agent)
@@ -281,7 +306,8 @@ workflow.add_node("tools", ToolNode(tools))
 
 # Build graph
 workflow.add_edge(START, "retrieve")
-workflow.add_conditional_edges("retrieve", grade_documents, {
+workflow.add_edge("retrieve", "grade_documents")
+workflow.add_conditional_edges("grade_documents", decide_generate, {
     "transform": "rewrite",
     "unavailable": "research-agent",
     "available": "generate",
@@ -293,7 +319,7 @@ workflow.add_conditional_edges(
     tools_condition,
     {
         "tools": "tools",
-        END: END,
+        END: END
     }
 )
 workflow.add_edge("tools", "research-agent")

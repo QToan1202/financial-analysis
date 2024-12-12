@@ -15,11 +15,10 @@ from langchain_nvidia_ai_endpoints import NVIDIAEmbeddings
 from langchain_postgres.vectorstores import PGVector
 from langchain_postgres import PGVector
 import os
-from typing import List, Literal, Any
+from typing import List, Literal
 from dotenv import load_dotenv, find_dotenv
 
 import tiktoken
-from langchain_community.tools.tavily_search import TavilySearchResults
 from langchain_core.documents import Document
 from langchain_core.messages import get_buffer_string, HumanMessage, RemoveMessage, trim_messages, AIMessage, AnyMessage
 from langchain_core.prompts import ChatPromptTemplate, PromptTemplate
@@ -115,7 +114,6 @@ tools = [save_recall_memory, search_recall_memories]
 class State(MessagesState):
     # add memories that will be retrieved based on the conversation context
     recall_memories: List[str]
-    logs: Any
 
 
 # Define the prompt template for the agent
@@ -346,6 +344,7 @@ def route_message(state: State, config: RunnableConfig) -> Literal["RAG", "Chatb
     handle it as a conversational response from the chatbot. Follow these steps:
 
       1. Use the RAG process if the input. 
+        * Seeks up-to-date information such as weather, current events, or trending topics (use the web search tool as needed).
         * Requires detailed factual retrieval from a specific knowledge base or document.
         * Mentions topics not covered by the chatbot's general knowledge or external tools
 
@@ -355,7 +354,6 @@ def route_message(state: State, config: RunnableConfig) -> Literal["RAG", "Chatb
           * 'Retrieve details about document X.'
 
       2. Handle it as a chatbot interaction if the input. 
-        * Seeks up-to-date information such as weather, current events, or trending topics (use the web search tool as needed).
         * Relates to user-specific references that can be resolved using long-term memory.
         * Involves casual conversation, creative tasks, or opinion-based queries
 
