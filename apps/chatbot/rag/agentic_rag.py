@@ -1,4 +1,3 @@
-from langchain_community.tools.tavily_search import TavilySearchResults
 from langgraph.prebuilt import tools_condition
 from langgraph.prebuilt import ToolNode
 from langgraph.graph import START, END, StateGraph
@@ -8,8 +7,15 @@ from langchain_core.output_parsers import BaseOutputParser
 from copilotkit.langchain import copilotkit_customize_config
 from langchain_core.prompts import PromptTemplate, ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
-import numpy as np
 from langchain_core.runnables import RunnableConfig
+from pydantic import BaseModel, Field
+from datetime import datetime, timedelta
+from langchain_core.tools import tool
+from langchain_community.tools.tavily_search import TavilySearchResults
+import json
+import numpy as np
+import pandas as pd
+import yfinance as yf
 from langchain.schema import Document
 from langgraph.graph import MessagesState
 from typing import List
@@ -25,7 +31,7 @@ CONNECTION = os.environ.get("PGVT_CONNECTION")
 
 COLLECTION_NAME = "documents"
 DOCUMENT_RELEVANT_THRESHOLD = 0.7
-RETRY_RETRIEVAL_COUNT = 1
+RETRY_RETRIEVAL_COUNT = 0
 
 
 llm = ChatNVIDIA(
@@ -61,10 +67,41 @@ class State(MessagesState):
     documents: List[Document]
     retry_count: int
 
+
 # Search
 
 
-web_search_tool = TavilySearchResults(k=3)
+web_search_tool = TavilySearchResults(name="web_search", k=3)
+
+
+class FinancialDataSchema(BaseModel):
+    ticker: str = Field(..., description="The stock ticker symbol for which financial data is being retrieved. Ex: APPL, NVDA,...", )
+
+
+@tool(args_schema=FinancialDataSchema)
+def get_financial_data(ticker: str) -> str:
+    """A comprehensive tool designed to fetch detailed 
+    financial information for a given stock ticker, 
+    serving as a critical component in financial analysis and investment research. 
+    Capabilities: 
+    Retrieves real-time and historical financial data, 
+    Provides in-depth financial metrics and insights,
+    Designed for use in automated financial agents and analysis systems
+    """
+    current_date = datetime.today()
+    target_date = datetime.today() - timedelta(weeks=1)
+    stock = yf.Ticker(ticker)
+    df = stock.history(start=target_date, end=current_date,
+                       interval='1d', raise_errors=True)
+    df['Trend'] = np.where(df['Close'].shift(-1) > df['Close'], "Up", "Down")
+    result = df.sort_values(
+        by=[df.index.name], ascending=False).to_dict('records')[0]
+    json_output = json.dumps(result)
+
+    return json_output
+
+
+tools = [web_search_tool, get_financial_data]
 
 # Utils def
 
@@ -132,9 +169,6 @@ def retrieve(state: State, config: RunnableConfig) -> State:
     refinement_prompt = PromptTemplate.from_template(prompt)
     refinement_chain = refinement_prompt | llm | output_parser
 
-    if retry_count >= RETRY_RETRIEVAL_COUNT:
-        return {"retry_count": retry_count + 1}
-
     user_id = get_user_id(config)
     filter = {"user_id": {"$eq": user_id}}
     search_kwargs = {
@@ -178,9 +212,6 @@ def grade_documents(state: State) -> State:
     return {"documents": ranking_docs}
 
 
-tools = [web_search_tool]
-
-
 def agent(state: State) -> State:
     """
     Invokes the agent model to generate a response based on the current state. Given
@@ -192,20 +223,71 @@ def agent(state: State) -> State:
     Returns:
         dict: The updated state with the agent response appended to messages
     """
+    query = state["messages"][-1]
     context = state.get("generation", "No context provided")
+    react_agent_prompt = """You are a sophisticated AI agent with advanced contextual analysis capabilities and access to specialized tools.
+      CORE OBJECTIVES:
+      - Provide comprehensive and accurate answers based on given context
+      - Leverage multiple tools strategically:
+        * Financial Data Retrieval Tool (get_financial_data)
+        * Tavily Search Tool (web_search)
+      - Enhance response depth through intelligent tool integration
+
+      TOOL UTILIZATION PROTOCOL:
+      1. Analyze the provided context and user query comprehensively
+      2. Identify knowledge gaps or areas requiring additional information
+      3. Strategically invoke tools in this priority order:
+        a) Use provided context first
+        b) Utilize Tavily search for supplementary information
+        c) Retrieve financial data if relevant
+      4. Synthesize information from all sources
+
+      TOOL INTERACTION STRATEGY:
+      - TAVILY SEARCH:
+        * Use for gathering real-time or additional contextual information
+        * Perform targeted searches to fill knowledge gaps
+        * Extract most relevant and recent information
+
+      - FINANCIAL DATA TOOL:
+        * Automatically trigger for financial, business, or company-related queries
+        * Extract key financial metrics and insights
+        * Provide contextualized financial analysis
+
+      RESPONSE GENERATION GUIDELINES:
+      - Ensure seamless integration of information from all sources
+      - Clearly attribute information to its source
+      - Maintain high standards of accuracy and relevance
+      - Provide nuanced, well-reasoned insights
+
+      ANALYTICAL PRINCIPLES:
+      - Prioritize context-driven analysis
+      - Maintain transparency about information sources
+      - Avoid speculative or unsupported claims
+      - Provide balanced, objective interpretation
+
+      ERROR HANDLING:
+      - If tools provide limited or conflicting information:
+        * Clearly communicate sources and limitations
+        * Focus on most reliable and consistent information
+        * Suggest areas for further investigation
+
+      RESPONSE STRUCTURE:
+      1. Preliminary Analysis: Initial insights from context
+      2. Tool Interactions: Summary of search and data retrieval
+      3. Synthesized Response: Comprehensive answer integrating all sources
+
+      CONTEXT: {context}
+      QUERY: {query}
+
+      BEGIN ANALYSIS"""
     prompt_template = ChatPromptTemplate.from_messages([
-        ("system", """You are given a Context that provides background information or details related to
-                      a specific topic, scenario, or situation. Based on this provided context, 
-                      you are asked to answer user question in a clear, comprehensive, and accurate manner.
-                      Your answer should take into account the information in the context, ensuring 
-                      that it is relevant and well-supported.
-                      Context: {context}"""),
+        ("system", react_agent_prompt),
         ("placeholder", "{messages}")
     ])
     model = chat_model.bind_tools(tools)
     chain = prompt_template | model
     response = chain.invoke(
-        {"context": context, "messages": state["messages"]})
+        {"context": context, "query": query.content, "messages": state["messages"]})
 
     return {"messages": [response]}
 
@@ -273,7 +355,7 @@ def generate(state: State, config: RunnableConfig) -> State:
 # Edges
 
 
-def decide_generate(state: State) -> Literal["transform", "unavailable", "available"]:
+def decide_generate(state: State) -> Literal["transform", "available"]:
     """
     Determines whether the retrieved documents are relevant to the question.
 
@@ -284,14 +366,29 @@ def decide_generate(state: State) -> Literal["transform", "unavailable", "availa
         str: A decision for whether the documents are relevant or not
     """
     document = state["documents"]
-    retry_count = state["retry_count"]
 
-    if retry_count > RETRY_RETRIEVAL_COUNT:
-        return "unavailable"
-    elif not document:
+    if not document:
         return "transform"
     else:
         return "available"
+
+
+def decide_retrieve(state: State) -> Literal["unavailable", "retrieve"]:
+    """
+    Determines whether the retrieved documents are relevant to the question.
+
+    Args:
+        state (dict): The current graph state
+
+    Returns:
+        str: A decision for whether the documents are relevant or not
+    """
+    retry_count = state["retry_count"]
+
+    if retry_count >= RETRY_RETRIEVAL_COUNT:
+        return "unavailable"
+    else:
+        return "retrieve"
 
 
 workflow = StateGraph(State)
@@ -309,10 +406,12 @@ workflow.add_edge(START, "retrieve")
 workflow.add_edge("retrieve", "grade_documents")
 workflow.add_conditional_edges("grade_documents", decide_generate, {
     "transform": "rewrite",
-    "unavailable": "research-agent",
     "available": "generate",
 })
-workflow.add_edge("rewrite", "retrieve")
+workflow.add_conditional_edges("rewrite", decide_retrieve, {
+    "unavailable": "research-agent",
+    "retrieve": "retrieve",
+})
 workflow.add_edge("generate", "research-agent")
 workflow.add_conditional_edges(
     "research-agent",

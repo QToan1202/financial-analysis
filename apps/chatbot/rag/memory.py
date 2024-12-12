@@ -374,7 +374,7 @@ def route_message(state: State, config: RunnableConfig) -> Literal["RAG", "Chatb
     last_message = state["messages"][-1]
     modified_config = copilotkit_customize_config(
         config, emit_messages=False)
-    result = route_chain.invoke(last_message, config=modified_config)
+    result = route_chain.invoke(last_message.content, config=modified_config)
 
     return result.route
 
@@ -390,7 +390,7 @@ def route_tools(state: State) -> Literal["tools", "delete_messages"]:
     """
 
     msg = state["messages"][-1]
-    if msg.tool_calls:
+    if isinstance(msg, AIMessage) and msg.tool_calls:
         return "tools"
 
     return "delete_messages"
