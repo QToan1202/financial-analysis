@@ -10,3 +10,7 @@
 .copilotKitMarkdown li {
   margin-left: 1rem;
 }
+
+.copilotKitChat {
+  height: 100%;
+}
