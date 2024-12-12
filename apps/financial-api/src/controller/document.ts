@@ -21,7 +21,8 @@ export const uploadDocument = async (request: Request, response: Response, next:
     const fileBlob = new Blob([buffer], {
       type: mimetype,
     })
-    formData.append('file', fileBlob, Buffer.from(originalname, 'latin1').toString('utf8'))
+    const convertFileName = Buffer.from(originalname, 'latin1').toString('utf8')
+    formData.append('file', fileBlob, convertFileName)
     formData.append('user_id', request.userId)
 
     try {
@@ -32,8 +33,8 @@ export const uploadDocument = async (request: Request, response: Response, next:
       })
       const document: HydratedDocument<IDocument> = new Document({
         ids: fastAPIResponse.data.file_ids || [],
-        name: originalname,
-        extension: originalname.split('.')[1],
+        name: convertFileName,
+        extension: convertFileName.split('.')[1],
         type: mimetype,
         size: size,
         user: request.userId,
