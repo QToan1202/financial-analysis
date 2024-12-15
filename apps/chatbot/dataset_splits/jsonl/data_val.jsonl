@@ -136,7 +136,6 @@
 {"messages": [{"role": "user", "content": "In which form is the Financial Statement Schedule of IBM's 2023 report found?"}, {"role": "assistant", "content": "Form 10-K"}]}
 {"messages": [{"role": "user", "content": "How much did UnitedHealth Group pay in cash dividends per common share in 2023?"}, {"role": "assistant", "content": "$7.29 per share"}]}
 {"messages": [{"role": "user", "content": "What are the two primary businesses of the company?"}, {"role": "assistant", "content": "Connectivity & Platforms and Content & Experiences."}]}
-{"messages": [{"role": "user", "content": "Missing data"}, {"role": "assistant", "content": "Missing data"}]}
 {"messages": [{"role": "user", "content": "What was the total number of Hilton's properties worldwide as of December 31, 2023?"}, {"role": "assistant", "content": "7,530"}]}
 {"messages": [{"role": "user", "content": "What is the primary revenue source for Comcast's Theme Parks segment?"}, {"role": "assistant", "content": "guest spending at the theme parks, including ticket sales and in-park purchases"}]}
 {"messages": [{"role": "user", "content": "Under which section of the financial report can the Financial Statements and Supplementary Data be found?"}, {"role": "assistant", "content": "The Financial Statements and Supplementary Data can be found under Item 15, captioned as Exhibits and Financial Statement Schedules."}]}
