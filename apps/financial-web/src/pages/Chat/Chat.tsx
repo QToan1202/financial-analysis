@@ -111,15 +111,13 @@ const Chat = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [documents, errorDocs, isGetDocuments, handleDeleteDoc])
   const documentContainerRef = useRef<HTMLDivElement>(null)
-  const chatContainerRef = useRef<HTMLDivElement>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
   const stable = useRef<number>(0)
-  const chatHeight = useRef<number>(0)
 
   useEffect(() => {
     window.addEventListener('resize', () => {
-      console.log(chatContainerRef.current?.getClientRects()[0].height)
+      console.log(containerRef.current?.getClientRects()[0].height)
       stable.current = documentContainerRef.current?.offsetHeight || 0
-      chatHeight.current = chatContainerRef.current?.offsetHeight || 0
     })
 
     return () => {
@@ -128,7 +126,7 @@ const Chat = () => {
   }, [])
 
   return (
-    <Grid flex={1} templateColumns={'1fr 1fr'}>
+    <Grid flex={1} templateColumns={'1fr 1fr'} ref={containerRef}>
       <GridItem
         display={'flex'}
         flexDirection="column"
@@ -218,11 +216,11 @@ const Chat = () => {
           {DocumentSection}
         </Box>
       </GridItem>
-      <GridItem ref={chatContainerRef} borderColor="gray.300" borderLeftWidth="0.5px" p="0.5rem">
+      <GridItem ref={containerRef} borderColor="gray.300" borderLeftWidth="0.5px" p="0.5rem">
         <Box
           as={CopilotChat}
           h="100%"
-          maxH={chatContainerRef.current?.offsetHeight}
+          maxH={`calc(${containerRef.current?.getClientRects()[0].height}px - 2rem)`}
           instructions={
             'You are assisting the user as best as you can. Answer in the best way possible given the data you have.'
           }
