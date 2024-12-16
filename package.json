@@ -28,7 +28,7 @@
   },
   "pnpm": {
     "patchedDependencies": {
-      "@copilotkit/react-core": "patches/@copilotkit__react-core.patch"
+      "@copilotkit/react-ui": "patches/@copilotkit__react-ui.patch"
     }
   }
 }
