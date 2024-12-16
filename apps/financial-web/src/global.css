@@ -1,3 +1,16 @@
 .copilotKitCodeBlockToolbarButton {
   width: 5.5rem;
 }
+
+.copilotKitCustomAssistantMessage {
+  display: flex;
+  margin-bottom: 2px;
+}
+
+.copilotKitMarkdown li {
+  margin-left: 1rem;
+}
+
+.copilotKitChat {
+  height: 100%;
+}

@@ -1,0 +1,50 @@
+diff --git a/dist/chunk-CPMIEVKK.mjs b/dist/chunk-CPMIEVKK.mjs
+index b3ef89630eeeeb794552ce30e4e1620b0fe11b71..d604b44e2c5cca53fc790cbfb8897d601414d377 100644
+--- a/dist/chunk-CPMIEVKK.mjs
++++ b/dist/chunk-CPMIEVKK.mjs
+@@ -24,7 +24,19 @@ var Messages = ({
+     () => makeInitialMessages(context.labels.initial),
+     [context.labels.initial]
+   );
+-  messages = [...initialMessages, ...messages];
++  messages = [...initialMessages, ...messages].reduce((acc, message) => {
++    const existingMessage = acc.find(m => m.id === message.id);
++    if (existingMessage) {
++      if (existingMessage.content !== undefined && message.content !== undefined) {
++        existingMessage.content += message.content;
++      }
++    } else {
++      const newMessage = Object.create(Object.getPrototypeOf(message));
++      Object.assign(newMessage, message);
++      acc.push(newMessage);
++    }
++    return acc;
++  }, []);
+   const actionResults = {};
+   for (let i = 0; i < messages.length; i++) {
+     if (messages[i].isActionExecutionMessage()) {
+diff --git a/dist/components/chat/Messages.js b/dist/components/chat/Messages.js
+index 8f7ef4fb9b0498997ea715cb41370a176ef700e1..863188796e1466911ef05b6dad864f0c64815445 100644
+--- a/dist/components/chat/Messages.js
++++ b/dist/components/chat/Messages.js
+@@ -66,7 +66,19 @@ var Messages = ({
+     () => makeInitialMessages(context.labels.initial),
+     [context.labels.initial]
+   );
+-  messages = [...initialMessages, ...messages];
++  messages = [...initialMessages, ...messages].reduce((acc, message) => {
++    const existingMessage = acc.find(m => m.id === message.id);
++    if (existingMessage) {
++      if (existingMessage.content !== undefined && message.content !== undefined) {
++        existingMessage.content += message.content;
++      }
++    } else {
++      const newMessage = Object.create(Object.getPrototypeOf(message));
++      Object.assign(newMessage, message);
++      acc.push(newMessage);
++    }
++    return acc;
++  }, []);
+   const actionResults = {};
+   for (let i = 0; i < messages.length; i++) {
+     if (messages[i].isActionExecutionMessage()) {

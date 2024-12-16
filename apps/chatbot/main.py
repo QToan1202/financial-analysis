@@ -1,4 +1,3 @@
-from typing import Annotated
 import os
 import warnings
 from dotenv import load_dotenv, find_dotenv
@@ -9,6 +8,8 @@ from langchain_postgres import PGVector
 from fastapi import FastAPI, UploadFile, HTTPException, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
+from pydantic import BaseModel
+from typing import Annotated, List
 
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 
@@ -16,8 +17,8 @@ from copilotkit_sdk_async import CopilotKitSDKAsync
 from langgraph_agent_async import LangGraphAgentAsync
 
 from file_handler_service import FileService
-from rag.memory import builder as state_graph
-from rag.memory import *
+# from rag.memory import builder as state_graph
+from rag.agentic_rag_v2 import workflow as state_graph
 # from agent import workflow as state_graph
 from api import add_fastapi_endpoint
 
@@ -36,7 +37,7 @@ warnings.filterwarnings('ignore')
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     embeddings = NVIDIAEmbeddings(
-        model="nvidia/llama-3.2-nv-embedqa-1b-v1",
+        model="nvidia/nv-embedqa-mistral-7b-v2",
         truncate="END")
     app.state.vector_store = PGVector(
         embeddings=embeddings,
@@ -45,6 +46,7 @@ async def lifespan(app: FastAPI):
         use_jsonb=True,
     )
     async with AsyncPostgresSaver.from_conn_string(DB_URI) as checkpointer:
+        checkpointer.setup()
         graph = state_graph.compile(checkpointer=checkpointer)
         app.state.sdk = CopilotKitSDKAsync(agents=[
             LangGraphAgentAsync(
