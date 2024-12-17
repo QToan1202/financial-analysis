@@ -51,7 +51,6 @@ const Search = forwardRef<HTMLInputElement, SearchProps>(({ onChangeText, ...res
       <Input
         variant="unstyled"
         sx={styles}
-        type="search"
         placeholder="Company or stock symbol..."
         {...rest}
         ref={ref}
