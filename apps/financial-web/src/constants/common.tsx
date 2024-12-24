@@ -1,4 +1,4 @@
-import { Letter, Market, Screener, Watchlist } from '@assets'
+import { Doc, Home, Letter, Market, News, Screener, Watchlist } from '@assets'
 
 export const TRENDING_INDEXES = ['NVDA', 'TSLA', 'AAPL', 'INDO']
 
@@ -29,13 +29,16 @@ export const DRAWER_ITEM = [
   {
     title: 'Home',
     href: '/',
+    icon: <Home />,
   },
   {
     title: 'News',
     href: '/news',
+    icon: <News />,
   },
   {
     title: 'Chat',
     href: '/chat',
+    icon: <Doc />,
   },
 ]
