@@ -11,16 +11,16 @@ type TimeFrameType = '1min' | '5min' | '15min' | '30min' | '1hour' | '4hour'
 type TransformStockPricesType = Pick<StockPrice, 'close' | 'date'>
 
 const useGetHistoricalPrice = (
-  ticket: string,
+  ticker: string,
   timeFrame: TimeFrameType = '1min',
   from: string = dayjs().subtract(3, 'day').format('YYYY-MM-DD'),
   to: string = dayjs().format('YYYY-MM-DD')
 ): UseQueryResult<TransformStockPricesType[], Error> => {
   return useQuery({
-    enabled: !!ticket,
-    queryKey: financialModelingPrepKeys.list(ticket),
+    enabled: !!ticker,
+    queryKey: financialModelingPrepKeys.list(ticker),
     queryFn: () =>
-      requestFML.get(`v3/historical-chart/${timeFrame}/${ticket}`, { params: { from, to } }),
+      requestFML.get(`v3/historical-chart/${timeFrame}/${ticker}`, { params: { from, to } }),
     select: useCallback(
       (data: AxiosResponse<Array<StockPrice>>) =>
         data.data.map(({ close, date }: StockPrice) => ({ close, date })),

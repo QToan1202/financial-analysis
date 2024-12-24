@@ -6,11 +6,11 @@ import { financialModelingPrepKeys } from '@factories'
 import { requestFML } from '@services'
 import type { Stock } from '@types'
 
-const useGetStockDetail = (ticket: string): UseQueryResult<Stock, Error> => {
+const useGetStockDetail = (ticker: string): UseQueryResult<Stock, Error> => {
   return useQuery({
-    enabled: !!ticket,
-    queryKey: financialModelingPrepKeys.detail(ticket),
-    queryFn: () => requestFML.get(`v3/profile/${ticket.toUpperCase()}`),
+    enabled: !!ticker,
+    queryKey: financialModelingPrepKeys.detail(ticker),
+    queryFn: () => requestFML.get(`v3/profile/${ticker.toUpperCase()}`),
     select: useCallback((data: AxiosResponse<Array<Stock>>) => data.data[0], []),
   })
 }

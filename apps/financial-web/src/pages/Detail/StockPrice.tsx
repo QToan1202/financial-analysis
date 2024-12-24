@@ -45,8 +45,8 @@ const options: ChartProps<'line'>['options'] = {
 type TransformStockPricesType = { x: string; y: number }[]
 
 const StockPrice = ({ isIncrease = true }: StockPriceProps) => {
-  const { ticket } = useParams()
-  const { data, isSuccess } = useGetHistoricalPrice(ticket || '')
+  const { ticker } = useParams()
+  const { data, isSuccess } = useGetHistoricalPrice(ticker || '')
   const chartRef = useRef<ChartJS<'line', TransformStockPricesType>>(null)
   const initRender = useRef<boolean>(true)
   const gradientBackgroundColor = useCallback(
