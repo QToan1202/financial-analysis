@@ -22,6 +22,7 @@ export default defineConfig({
       '@constants': `${path.resolve(__dirname, './src/constants/')}`,
       '@layouts': `${path.resolve(__dirname, './src/layouts/')}`,
       '@contexts': `${path.resolve(__dirname, './src/contexts/')}`,
+      '@features': `${path.resolve(__dirname, './src/features/')}`,
     },
   },
 })
