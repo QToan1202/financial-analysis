@@ -21,8 +21,7 @@ import numpy as np
 import pandas as pd
 import yfinance as yf
 from langchain_postgres.vectorstores import PGVector
-from langchain_openai import ChatOpenAI
-from langchain_nvidia_ai_endpoints import ChatNVIDIA, NVIDIAEmbeddings
+from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 import os
 from dotenv import load_dotenv, find_dotenv
 import sys
@@ -39,30 +38,13 @@ COLLECTION_NAME = "documents"
 DOCUMENT_RELEVANT_THRESHOLD = 0.7
 RETRY_RETRIEVAL_COUNT = 0
 
-# llm = ChatOpenAI(
-#     base_url="https://integrate.api.nvidia.com/v1",
-#     model="meta/llama-3.3-70b-instruct",
-#     streaming=True,
-#     )
-
 llm = ChatOpenAI(
     model="ft:gpt-4o-mini-2024-07-18:financial::AebWqcy2",
     streaming=True,
 )
 
-# llm = ChatNVIDIA(
-#     model="meta/llama-3.1-405b-instruct",
-#     temperature=0.5,
-# )
-
-chat_model = ChatNVIDIA(
-    model="meta/llama-3.1-70b-instruct",
-    temperature=0.5,
-)
-
-embeddings = NVIDIAEmbeddings(
-    model="nvidia/nv-embedqa-mistral-7b-v2",
-    truncate="END"
+embeddings = OpenAIEmbeddings(
+    model="text-embedding-3-small",
 )
 
 vector_store = PGVector(
@@ -87,14 +69,6 @@ def get_user_id(config: RunnableConfig) -> str:
 web_search_tool = TavilySearchResults(name="web_search", k=3)
 
 
-class LineListOutputParser(BaseOutputParser[List[str]]):
-    """Output parser for a list of lines."""
-
-    def parse(self, text: str) -> List[str]:
-        lines = text.strip().split("\n")
-        return list(filter(None, lines))  # Remove empty lines
-
-
 class RetrieverInput(BaseModel):
     """Input to the retriever."""
 
@@ -115,7 +89,7 @@ def retrieve(query: str, config: RunnableConfig):
     search_kwargs = {
         "k": 3,
         "fetch_k": 5,
-        # "filter": filter
+        "filter": filter
     }
     retriever = vector_store.as_retriever(search_type="mmr",
                                           search_kwargs=search_kwargs)
@@ -189,7 +163,7 @@ def search_recall_memories(query: str, config: RunnableConfig) -> str:
     search_kwargs = {
         "k": 3,
         "fetch_k": 5,
-        # "filter": filter
+        "filter": filter
     }
 
     documents = vector_store.as_retriever(search_type="mmr",

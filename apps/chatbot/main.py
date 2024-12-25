@@ -1,25 +1,19 @@
 import os
 import warnings
 from dotenv import load_dotenv, find_dotenv
-
-from langchain_nvidia_ai_endpoints import NVIDIAEmbeddings
 from langchain_postgres import PGVector
-
 from fastapi import FastAPI, UploadFile, HTTPException, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from pydantic import BaseModel
 from typing import Annotated, List
-
+from langchain_openai import OpenAIEmbeddings
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 
 from copilotkit_sdk_async import CopilotKitSDKAsync
 from langgraph_agent_async import LangGraphAgentAsync
-
 from file_handler_service import FileService
-# from rag.memory import builder as state_graph
-from rag.agentic_rag_v2 import workflow as state_graph
-# from agent import workflow as state_graph
+from agentic_rag import workflow as state_graph
 from api import add_fastapi_endpoint
 
 DB_URI = os.environ.get("PSQL_CONNECTION")
@@ -36,9 +30,9 @@ warnings.filterwarnings('ignore')
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    embeddings = NVIDIAEmbeddings(
-        model="nvidia/nv-embedqa-mistral-7b-v2",
-        truncate="END")
+    embeddings = OpenAIEmbeddings(
+        model="text-embedding-3-small",
+    )
     app.state.vector_store = PGVector(
         embeddings=embeddings,
         collection_name=collection_name,
