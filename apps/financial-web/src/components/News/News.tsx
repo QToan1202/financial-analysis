@@ -2,6 +2,8 @@ import { Flex, Grid, GridItem, Heading, Image, Link, Text } from '@chakra-ui/rea
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
 
+import { placeholder } from '@assets'
+
 dayjs.extend(relativeTime)
 
 export type NewsProps = {
@@ -28,12 +30,12 @@ const News = ({ thumbnail, publishDate, sourceName, title, description, link }: 
           <Image
             w="full"
             h="full"
-            maxW="295px"
+            maxW="380px"
             maxH="165px"
             mt="0.25rem"
             objectFit="cover"
             borderRadius="0.25rem"
-            fallbackSrc="https://via.placeholder.com/250"
+            fallbackSrc={placeholder}
             src={thumbnail}
             alt="thumbnail of news"
           />
