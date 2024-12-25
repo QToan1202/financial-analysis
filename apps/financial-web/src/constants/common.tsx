@@ -1,4 +1,4 @@
-import { Doc, Home, Letter, Market, News, Screener, Watchlist } from '@assets'
+import { ArrowLeft, Doc, Home, Letter, Market, News, Screener, Watchlist } from '@assets'
 
 export const TRENDING_INDEXES = ['NVDA', 'TSLA', 'AAPL', 'INDO']
 
@@ -40,5 +40,10 @@ export const DRAWER_ITEM = [
     title: 'Chat',
     href: '/chat',
     icon: <Doc />,
+  },
+  {
+    title: 'Collapse',
+    href: '#',
+    icon: <ArrowLeft />,
   },
 ]

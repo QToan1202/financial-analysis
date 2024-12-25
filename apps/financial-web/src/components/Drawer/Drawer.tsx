@@ -8,7 +8,10 @@ import {
   DrawerFooter,
   DrawerHeader,
   DrawerOverlay,
+  Flex,
   Heading,
+  chakra,
+  useOutsideClick,
 } from '@chakra-ui/react'
 import { ReactNode, useCallback, useMemo } from 'react'
 
@@ -32,20 +35,24 @@ const Drawer = ({ ...props }: DrawerProps) => {
   }, [])
   const DrawerItem = useMemo(
     () =>
-      DRAWER_ITEM.map(({ title, href }, index) => (
-        <Link to={href} key={index} _hover={{ textDecoration: 'none' }}>
-          <Box p="1rem" pl="0.25rem" _hover={{ bgColor: 'gray.200' }}>
-            <Heading
-              as="h6"
-              color="text.default"
-              fontSize="xl"
-              fontWeight="semibold"
-              letterSpacing={1.2}
-            >
+      DRAWER_ITEM.map(({ title, href, icon }, index) => (
+        <Flex key={index} borderRadius=".375rem" _hover={{ bgColor: 'gray.bg' }}>
+          <Link
+            _activeLink={{ bgColor: 'red' }}
+            to={href}
+            flex={1}
+            display="flex"
+            alignItems="center"
+            gap=".5rem"
+            p="1rem"
+            _hover={{ textDecoration: 'none', color: 'text.default' }}
+          >
+            {icon}
+            <chakra.span color="#4b5563" fontSize="sm" fontWeight="semibold">
               {title}
-            </Heading>
-          </Box>
-        </Link>
+            </chakra.span>
+          </Link>
+        </Flex>
       )),
     []
   )
@@ -54,16 +61,13 @@ const Drawer = ({ ...props }: DrawerProps) => {
     <CDrawer placement="left" {...props}>
       <DrawerOverlay />
       <DrawerContent bgColor="white">
-        <DrawerCloseButton />
-        <DrawerHeader>Financial Analysis</DrawerHeader>
+        <DrawerBody p="0.5rem">{DrawerItem}</DrawerBody>
 
-        <DrawerBody>{DrawerItem}</DrawerBody>
-
-        <DrawerFooter>
+        {/* <DrawerFooter>
           <Button borderRadius="2px" w="full" onClick={handleLogout}>
             Log Out
           </Button>
-        </DrawerFooter>
+        </DrawerFooter> */}
       </DrawerContent>
     </CDrawer>
   )
