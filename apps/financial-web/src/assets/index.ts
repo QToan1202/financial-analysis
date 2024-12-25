@@ -15,5 +15,6 @@ export { default as Home } from './home.svg?react'
 export { default as News } from './news.svg?react'
 export { default as Doc } from './doc.svg?react'
 export { default as ArrowLeft } from './arrow-left.svg?react'
+export { default as ArrowRight } from './arrow-right.svg?react'
 
 export { default as file } from './file.png'
