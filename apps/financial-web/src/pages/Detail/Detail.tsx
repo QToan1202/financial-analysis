@@ -18,9 +18,9 @@ import { useGetHistoricalPrice, useGetStockDetail } from '@hooks'
 import StockPrice from './StockPrice'
 
 const DetailPage = () => {
-  const { ticket } = useParams()
-  useGetHistoricalPrice(ticket || '')
-  const { data: stockDetail, error, isPending } = useGetStockDetail(ticket || '')
+  const { ticker } = useParams()
+  useGetHistoricalPrice(ticker || '')
+  const { data: stockDetail, error, isPending } = useGetStockDetail(ticker || '')
   const toast = useToast()
 
   if (error)

@@ -9,7 +9,8 @@ export const alphaAdvantagedKeys = {
 export const financialModelingPrepKeys = {
   all: ['FMPK'] as const,
   lists: () => [...financialModelingPrepKeys.all, 'list'] as const,
-  list: (filters: string) => [...financialModelingPrepKeys.lists(), { filters }] as const,
+  // TODO: Check query cached even diff keys [...financialModelingPrepKeys.lists(), { filters }]
+  list: (filters: string) => [...financialModelingPrepKeys.lists(), filters] as const,
   details: () => [...financialModelingPrepKeys.all, 'detail'] as const,
   detail: (id: string) => [...financialModelingPrepKeys.details(), id] as const,
 }

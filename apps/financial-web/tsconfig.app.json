@@ -33,7 +33,8 @@
       "@types/*": ["src/types/*"],
       "@constants/*": ["src/constants/*"],
       "@layouts/*": ["src/layouts/*"],
-      "@contexts/*": ["src/contexts/*"]
+      "@contexts/*": ["src/contexts/*"],
+      "@features/*": ["src/features/*"]
     }
   },
   "include": ["src"]
