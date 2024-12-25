@@ -2,7 +2,7 @@
 
 Topic: Build a financial market analysis website using linguistic model to support predicting future financial trends
 
-## Design
+## Reference website
 
 [Design](https://stockanalysis.com/)
 
@@ -20,6 +20,7 @@ Topic: Build a financial market analysis website using linguistic model to suppo
 - Python equal or above (v3.11.0)
 - Setup virtual environment python ([optional](https://docs.python.org/3/library/venv.html))
 - Setup [Docker CLI](https://docs.docker.com/reference/cli/docker/)
+- Create Google OAuth 2.0 Client credential with this [guide](https://developers.google.com/identity/protocols/oauth2)
 
 ## Install and Run
 
@@ -43,17 +44,17 @@ cd financial-analysis
 git checkout develop
 ```
 
-**_Step 4:_** Setup own environment variables. Rename the _.env.example_ file to _.env_
+**_Step 4:_** Setup your own environment variables. Rename the _.env.example_ file to _.env_
 
 - For the FE: Require for stocks endpoint
   - [Alpha Vantage](https://www.alphavantage.co/)
   - [Financial Modeling Prep](https://site.financialmodelingprep.com/)
   - [Polygon](https://polygon.io/)
 - For the BE: Use to host CopilotKit Runtime
-  - [NVIDIA NIM](https://developer.nvidia.com/nim) key to connect to the LLM model
+  - [OpenAI](https://platform.openai.com/docs/quickstart/step-2-set-up-your-api-key) key to connect to the LLM model
 - For the Chatbot:
   - LangChain key for [LangSmith tracing](https://www.langchain.com/) (optional)
-  - [NVIDIA NIM](https://developer.nvidia.com/nim) key to connect to the LLM model
+  - [OpenAI](https://platform.openai.com/docs/quickstart/step-2-set-up-your-api-key) key to connect to the LLM model
   - [Tavily](https://tavily.com/) tool search for ReAct agent
   - PostgreSQL and PGVector connection string
 
