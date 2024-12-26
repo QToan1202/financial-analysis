@@ -18,7 +18,7 @@ const useGetHistoricalPrice = (
 ): UseQueryResult<TransformStockPricesType[], Error> => {
   return useQuery({
     enabled: !!ticker,
-    queryKey: financialModelingPrepKeys.list(ticker),
+    queryKey: financialModelingPrepKeys.history(ticker),
     queryFn: () =>
       requestFML.get(`v3/historical-chart/${timeFrame}/${ticker}`, { params: { from, to } }),
     select: useCallback(
