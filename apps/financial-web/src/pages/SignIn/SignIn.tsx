@@ -110,7 +110,7 @@ const SignInPage = () => {
             <Input
               id="account"
               {...register('account', {
-                required: 'This is required',
+                required: 'Please enter your email address. Ex: email@domain.com',
                 minLength: { value: 4, message: 'Minimum length should be 4' },
               })}
             />
@@ -124,7 +124,7 @@ const SignInPage = () => {
               id="password"
               type="password"
               {...register('password', {
-                required: 'This is required',
+                required: 'Password is required for login',
                 minLength: { value: 4, message: 'Minimum length should be 4' },
               })}
             />
@@ -152,11 +152,14 @@ const SignInPage = () => {
             Don&#39;t have an account?
           </Heading>
           <Button
+            as={Link}
+            // @ts-expect-error: "Merge Link into Button conflict"
+            to="/sign-up"
             variant="outline"
             borderRadius="full"
             _hover={{ bgColor: 'black.100', color: 'white.50' }}
           >
-            <Link to="/sign-up">Sign up</Link>
+            Sign up
           </Button>
         </Flex>
       </Flex>

@@ -114,7 +114,7 @@ const SignInPage = () => {
             <Input
               id="firstName"
               {...register('firstName', {
-                required: 'This is required',
+                required: 'Please enter your first name',
                 minLength: { value: 4, message: 'Minimum length should be 4' },
               })}
             />
@@ -127,7 +127,7 @@ const SignInPage = () => {
             <Input
               id="lastName"
               {...register('lastName', {
-                required: 'This is required',
+                required: 'Please enter your last name',
                 minLength: { value: 4, message: 'Minimum length should be 4' },
               })}
             />
@@ -140,7 +140,7 @@ const SignInPage = () => {
             <Input
               id="email"
               {...register('email', {
-                required: 'This is required',
+                required: 'Email is required for registration',
                 minLength: { value: 4, message: 'Minimum length should be 4' },
               })}
             />
@@ -153,7 +153,7 @@ const SignInPage = () => {
             <Input
               id="phone"
               {...register('phone', {
-                required: 'This is required',
+                required: 'Phone number is required',
                 minLength: { value: 4, message: 'Minimum length should be 4' },
               })}
             />
@@ -167,8 +167,8 @@ const SignInPage = () => {
               id="password"
               type="password"
               {...register('password', {
-                required: 'This is required',
-                minLength: { value: 4, message: 'Minimum length should be 4' },
+                required: 'Password is required',
+                minLength: { value: 8, message: 'Minimum length should be 8' },
               })}
             />
             <FormHelperText color="gray.100">
